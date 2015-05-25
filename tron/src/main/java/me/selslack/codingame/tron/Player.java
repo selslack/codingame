@@ -3,6 +3,7 @@ package me.selslack.codingame.tron;
 import java.lang.*;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.*;
 
 public class Player {
@@ -37,7 +38,15 @@ final class GameField implements Cloneable {
     }
 
     public void fill(byte value) {
-        Arrays.fill(_map, value);
+        fill(value, v -> true);
+    }
+
+    public void fill(byte value, Predicate<Byte> predicate) {
+        for (int i = 0; i < _map.length; i++) {
+            if (predicate.test(_map[i])) {
+                _map[i] = value;
+            }
+        }
     }
 
     public void set(byte value, final int... dimensions) {
