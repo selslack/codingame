@@ -3,7 +3,7 @@ package me.selslack.codingame.tron;
 import java.lang.*;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.StreamSupport;
+import java.util.stream.*;
 
 public class Player {
     public static void main(String args[]) {
@@ -15,492 +15,413 @@ public class Player {
             int N = in.nextInt(); // total number of players (2 to 4).
             int P = in.nextInt(); // your player number (0 to 3).
 
-            ai.initialize(N, P);
+            ai.game.initialize(N, P);
 
             for (int i = 0; i < N; i++) {
-                ai.push(i, in.nextInt(), in.nextInt(), in.nextInt(), in.nextInt());
+                ai.game.push(i, in.nextInt(), in.nextInt(), in.nextInt(), in.nextInt());
             }
 
-            System.out.println(ai.process());
+            System.out.println(ai.makeDecision());
         }
     }
 }
 
-enum Direction {
-    UP   ("UP",     0, -1),
-    DOWN ("DOWN",   0,  1),
-    LEFT ("LEFT",  -1,  0),
-    RIGHT("RIGHT",  1,  0);
+final class GameField implements Cloneable {
+    final
+    private int[]   _dimensions;
+    private byte[]  _map;
 
-    private final String _movement;
-    private final int    _x, _y;
-
-    private static final Random          _random = new Random();
-    private static final List<Direction> _values = Collections.unmodifiableList(Arrays.asList(values()));
-
-    Direction(String movement, int x, int y) {
-        _movement = movement;
-        _x        = x;
-        _y        = y;
+    public GameField(final int... dimensions) {
+        _dimensions = dimensions;
+        _map        = new byte[Arrays.stream(_dimensions).filter(i -> i >= 0).reduce((a, b) -> a * b).orElse(0)];
     }
 
-    public String getMovement() {
-        return _movement;
+    public void fill(byte value) {
+        Arrays.fill(_map, value);
     }
 
-    public int getX() {
-        return _x;
+    public void set(byte value, final int... dimensions) {
+        _map[index(dimensions)] = value;
     }
 
-    public int getY() {
-        return _y;
+    public byte get(final int... dimensions) {
+        return _map[index(dimensions)];
     }
 
-    public static List<Direction> directions() {
-        return _values;
+    public int index(final int... dimensions) {
+        if (!(_dimensions.length == dimensions.length)) {
+            throw new IllegalArgumentException("Dimensions do not match");
+        }
+
+        int result = 0;
+
+        for (byte i = 0; i < _dimensions.length; i++) {
+            if (!(dimensions[i] >= 0 && dimensions[i] < _dimensions[i])) {
+                throw new IllegalArgumentException("Invalid dimension given for axis " + i + ": " + Arrays.deepToString(IntStream.of(dimensions).boxed().toArray()));
+            }
+
+            result = dimensions[i] + _dimensions[i] * result;
+        }
+
+        return result;
     }
 
-    public static Direction random() {
-        return _values.get(_random.nextInt(_values.size()));
+    public boolean check(final int... dimensions) {
+        if (!(_dimensions.length == dimensions.length)) {
+            return false;
+        }
+
+        for (byte i = 0; i < _dimensions.length; i++) {
+            if (!(dimensions[i] >= 0 && dimensions[i] < _dimensions[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    protected GameField clone() {
+        GameField result;
+
+        try {
+            result = (GameField) super.clone();
+        }
+        catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+
+        result._map = Arrays.copyOf(this._map, this._map.length);
+
+        return result;
     }
 }
 
-class Game implements Cloneable {
-    class GameState implements Cloneable {
-        private byte      _x, _y;
-        private boolean[] _defeated;
-        private byte[][]  _map;
+class Game {
+    enum Direction {
+        UP   ("UP",     0, -1),
+        DOWN ("DOWN",   0,  1),
+        LEFT ("LEFT",  -1,  0),
+        RIGHT("RIGHT",  1,  0);
+
+        private final String _movement;
+        private final int[]  _dimensions;
+
+        private static final Random          _random = new Random();
+        private static final Direction[]     _values = values();
+
+        Direction(String movement, int... dimensions) {
+            _movement   = movement;
+            _dimensions = dimensions;
+        }
+
+        public String getMovement() {
+            return _movement;
+        }
+
+        public int[] getDimensions() {
+            return _dimensions;
+        }
+
+        public static Direction[] directions() {
+            return _values;
+        }
+
+        public static Direction random() {
+            return _values[_random.nextInt(_values.length)];
+        }
+    }
+
+    static class TronGameField implements Cloneable {
+        static final private int
+            DIMENSIONS = 2,
+            X          = 30,
+            Y          = 20;
+
+        final private int _playerCount;
+
+        private GameField _field;
         private int[][]   _positions;
+        private boolean[] _defeated;
 
-        public GameState(int players, int x, int y) {
-            _x         = (byte) x;
-            _y         = (byte) y;
-            _defeated  = new boolean[players];
-            _map       = new byte[x][y];
-            _positions = new int[players][2];
+        TronGameField(int playerCount) {
+            _playerCount = playerCount;
+            _field       = new GameField(X, Y);
+            _positions   = new int[_playerCount][DIMENSIONS];
+            _defeated    = new boolean[_playerCount];
 
-            for (int xx = 0; xx < _x; xx++) {
-                Arrays.fill(_map[xx], (byte) -1);
-            }
+            // Mark every cell as default region
+            _field.fill(Byte.MIN_VALUE);
         }
 
-        public void push(int playerId, int x1, int y1) {
-            if (x1 == -1 || _defeated[playerId]) {
-                if (!_defeated[playerId]) {
-                    for (byte x = 0; x < _x; x++) {
-                        for (byte y = 0; y < _y; y++) {
-                            if (_map[x][y] == playerId) {
-                                _map[x][y] = (byte) -1;
-                            }
-                        }
-                    }
-
-                    _defeated[playerId]  = true;
-                    _positions[playerId] = new int[] {-1, -1};
-                }
-
-                return ;
-            }
-
-            _positions[playerId] = new int[] {x1, y1};
-            _map[x1][y1]         = (byte) playerId;
-        }
-
-        public int getX() {
-            return _x;
-        }
-
-        public int getY() {
-            return _y;
-        }
-
-        public int getPlayerCount() {
-            return _defeated.length;
-        }
-
-        public int[] getPosition(int playerId) {
-            return _positions[playerId];
+        public Byte getValue(int... coordinates) {
+            return _field.check(coordinates) ? _field.get(coordinates) : null;
         }
 
         public boolean isDefeated(int playerId) {
             return _defeated[playerId];
         }
 
-        public boolean isCellEmpty(int x, int y) {
-            return x >= 0 && y >= 0 & x < _x && y < _y && _map[x][y] == (byte) -1;
+        public void push(int playerId, int... coordinates) {
+            if (!(playerId >= 0 && playerId < _playerCount)) {
+                throw new IllegalArgumentException("Invalid playerId");
+            }
+
+            if (!(coordinates.length == DIMENSIONS)) {
+                throw new IllegalArgumentException("Invalid coordinates");
+            }
+
+            if (coordinates[0] == -1) {
+                _defeated[playerId] = true;
+            }
+            else {
+                if (isDefeated(playerId)) {
+                    throw new IllegalArgumentException("Player " + playerId + " has been defeated. This mustn't happen in real life.");
+                }
+
+                _field.set((byte) playerId, coordinates);
+            }
+
+            _positions[playerId] = coordinates;
         }
 
         @Override
-        protected GameState clone() {
-            GameState result;
+        protected TronGameField clone() {
+            TronGameField result;
 
             try {
-                result = (GameState) super.clone();
+                result = (TronGameField) super.clone();
             }
             catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e);
             }
 
-            result._defeated  = Arrays.copyOf(this._defeated, this._defeated.length);
-            result._map       = Arrays.stream(result._map).map((bytes) -> bytes.clone()).toArray((value) -> new byte[value][]);
+            result._field     = _field.clone();
+            result._defeated  = _defeated.clone();
             result._positions = Arrays.stream(result._positions).map((ints) -> ints.clone()).toArray((value) -> new int[value][]);
 
             return result;
         }
     }
 
-    private GameState _state;
+    public int pId  = 0,
+               pNum = -1;
 
-    @Override
-    protected Game clone() {
-        Game result;
+    private LinkedList<TronGameField> _fields;
 
-        try {
-            result = (Game) super.clone();
-        }
-        catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
+    public void initialize(int playerCount, int playerId)
+    {
+        if (!(playerCount > 0 && playerId >= 0 && playerId < playerCount)) {
+            throw new IllegalArgumentException("Invalid initialization options");
         }
 
-        result._state = this._state.clone();
-
-        return result;
-    }
-}
-
-class GameState implements Cloneable {
-    private byte      _x, _y;
-    private boolean[] _defeated;
-    private byte[][]  _map;
-    private int[][]   _positions;
-
-    public GameState(int players, int x, int y) {
-        _x         = (byte) x;
-        _y         = (byte) y;
-        _defeated  = new boolean[players];
-        _map       = new byte[x][y];
-        _positions = new int[players][2];
-
-        for (int xx = 0; xx < _x; xx++) {
-            Arrays.fill(_map[xx], (byte) -1);
-        }
-    }
-
-    public void push(int playerId, int x1, int y1) {
-        if (x1 == -1 || _defeated[playerId]) {
-            if (!_defeated[playerId]) {
-                for (byte x = 0; x < _x; x++) {
-                    for (byte y = 0; y < _y; y++) {
-                        if (_map[x][y] == playerId) {
-                            _map[x][y] = (byte) -1;
-                        }
-                    }
-                }
-
-                _defeated[playerId]  = true;
-                _positions[playerId] = new int[] {-1, -1};
+        if (_fields != null) {
+            if (!(playerCount == pNum && playerId == pId)) {
+                throw new IllegalArgumentException("Can not reinitialize the same game with different configuration");
             }
 
             return ;
         }
 
-        _positions[playerId] = new int[] {x1, y1};
-        _map[x1][y1]         = (byte) playerId;
+        pId = playerId;
+        pNum = playerCount;
+
+        _fields = new LinkedList<>();
+        _fields.add(new TronGameField(playerCount));
     }
 
-    public int getX() {
-        return _x;
+    private TronGameField _getActiveField() {
+        return _fields.getFirst();
     }
 
-    public int getY() {
-        return _y;
-    }
-
-    public int getPlayerCount() {
-        return _defeated.length;
-    }
-
-    public int[] getPosition(int playerId) {
-        return _positions[playerId];
-    }
-
-    public boolean isDefeated(int playerId) {
-        return _defeated[playerId];
-    }
-
-    public boolean isCellEmpty(int x, int y) {
-        return x >= 0 && y >= 0 & x < _x && y < _y && _map[x][y] == (byte) -1;
-    }
-
-    @Override
-    protected GameState clone() {
-        GameState result;
-
-        try {
-            result = (GameState) super.clone();
-        }
-        catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
-
-        result._defeated  = Arrays.copyOf(this._defeated, this._defeated.length);
-        result._map       = Arrays.stream(result._map).map((bytes) -> bytes.clone()).toArray((value) -> new byte[value][]);
-        result._positions = Arrays.stream(result._positions).map((ints) -> ints.clone()).toArray((value) -> new int[value][]);
-
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder result = new StringBuilder(_x * _y + 150);
-
-        result.append(super.toString());
-        result.append("\n");
-
-        for (int y = 0; y < _y; y++) {
-            result.append(y % 10).append("|");
-
-            for (int x = 0; x < _x; x++) {
-                if (_map[x][y] == (byte) -1) {
-                    result.append(" ");
-                }
-                else {
-                    result.append(_map[x][y]);
-                }
-            }
-
-            result.append("\n");
-        }
-
-        return result.toString();
-    }
-}
-
-class GameRules {
-    private static class Cell {
-        private int _x, _y;
-
-        Cell(int[] cell) {
-            _x = cell[0];
-            _y = cell[1];
-        }
-
-        Cell(Cell cell, Direction direction) {
-            _x = cell._x + direction.getX();
-            _y = cell._y + direction.getY();
-        }
-
-        public int getX() {
-            return _x;
-        }
-
-        public int getY() {
-            return _y;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o || !(o == null || getClass() != o.getClass()) && _x == ((Cell) o)._x && _y == ((Cell) o)._y;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(_x, _y);
-        }
-    }
-
-    private static class FreeAdjacentCellSpliterator implements Spliterator<Cell> {
-        private GameState   _state;
-        private Queue<Cell> _queue   = new LinkedList<>();
-        private Set<Cell>   _visited = new HashSet<>(256);
-
-        public FreeAdjacentCellSpliterator(GameState state, Cell initial) {
-            _state = state;
-
-            // add initial cell to queue
-            _addCellToQueue(initial);
-        }
-
-        private void _addCellToQueue(Cell cell) {
-            if (_visited.contains(cell)) {
-                return ;
-            }
-
-            _queue.add(cell);
-            _visited.add(cell);
-        }
-
-        @Override
-        public boolean tryAdvance(Consumer<? super Cell> action) {
-            if (_queue.isEmpty()) {
-                return false;
-            }
-
-            Cell cell = _queue.remove();
-
-            for (Direction direction : Direction.values()) {
-                if (GameRules.isCellAvailable(_state, cell._x, cell._y, direction)) {
-                    _addCellToQueue(new Cell(cell, direction));
-                }
-            }
-
-            if (GameRules.isCellAvailable(_state, cell._x, cell._y)) {
-                action.accept(cell);
-            }
-
-            return true;
-        }
-
-        @Override
-        public Spliterator<Cell> trySplit() {
-            return null;
-        }
-
-        @Override
-        public long estimateSize() {
-            return Long.MAX_VALUE;
-        }
-
-        @Override
-        public int characteristics() {
-            return DISTINCT | NONNULL;
-        }
-    }
-
-    static public boolean isDefeated(GameState state, int playerId) {
-        return state.isDefeated(playerId);
-    }
-
-    static public boolean isCellAvailable(GameState state, int x, int y) {
-        return state.isCellEmpty(x, y);
-    }
-
-    static public boolean isCellAvailable(GameState state, int x, int y, Direction direction) {
-        return state.isCellEmpty(x + direction.getX(), y + direction.getY());
-    }
-
-    static public boolean isCellAvailable(GameState state, int playerId, Direction direction) {
-        return state.isCellEmpty(
-            state.getPosition(playerId)[0] + direction.getX(),
-            state.getPosition(playerId)[1] + direction.getY()
+    public void savepoint() {
+        _fields.addFirst(
+            _fields.getFirst().clone()
         );
     }
 
-    static public Direction[] getPossibleDirections(GameState state, int playerId) {
-        Direction[] result = new Direction[Direction.values().length];
-
-        for (Direction direction : Direction.values()) {
-            if (isCellAvailable(state, playerId, direction)) {
-                result[direction.ordinal()] = direction;
-            }
+    public void revert() {
+        if (_fields.size() == 1) {
+            throw new RuntimeException("No saved state present");
         }
 
-        return result;
+        _fields.removeFirst();
     }
 
-    static public int getNormalizedCellCountAvailableSt(GameState state, int playerId) {
-        if (isDefeated(state, playerId)) {
-            return 0;
-        }
-
-        return (int) StreamSupport.stream(new FreeAdjacentCellSpliterator(state, new Cell(state.getPosition(playerId))), false).count();
+    public void push(int playerId, int _1, int _2, int x, int y) {
+        _getActiveField().push(playerId, x, y);
     }
 
-    static public void movePlayer(GameState state, int playerId, Direction direction) {
-        if (isCellAvailable(state, playerId, direction)) {
-            state.push(
-                playerId,
-                state.getPosition(playerId)[0] + direction.getX(),
-                state.getPosition(playerId)[1] + direction.getY()
-            );
+    public void push(int playerId, Direction direction) {
+        int[] coordinates = getPlayerPosition(playerId).clone();
+
+        for (int i = 0; i < TronGameField.DIMENSIONS; i++) {
+            coordinates[i] += direction._dimensions[i];
         }
-        else {
-            state.push(
-                playerId,
-                -1,
-                -1
-            );
-        }
+
+        _getActiveField().push(playerId, coordinates);
     }
-}
 
-interface Evaluator {
-    public int evaluate(GameState state, int playerId);
-}
+    public int[] getPlayerPosition(int playerId) {
+        return _getActiveField()._positions[playerId];
+    }
 
-class PossibleMovementsEvaluator implements Evaluator {
-    @Override
-    public int evaluate(GameState state, int playerId) {
-        return GameRules.getNormalizedCellCountAvailableSt(state, playerId) * 10;
+    public boolean isCellAvailable(int... dimensions) {
+        Byte value = _getActiveField().getValue(dimensions);
+        return value != null && (value == Byte.MIN_VALUE || _getActiveField().isDefeated(value));
+    }
+
+    public boolean isCellAvailable(Direction direction, int... dimensions) {
+        int[] coordinates = dimensions.clone();
+
+        for (int i = 0; i < TronGameField.DIMENSIONS; i++) {
+            coordinates[i] += direction._dimensions[i];
+        }
+
+        Byte value = _getActiveField().getValue(coordinates);
+        return value != null && (value == Byte.MIN_VALUE || _getActiveField().isDefeated(value));
     }
 }
 
 class AI {
-    private int _playerId = 0;
-    private GameState _state = null;
-
-    public AI initialize(int playerCount, int playerId) {
-        if (_state == null) {
-            _state    = new GameState(playerCount, 30, 20);
-            _playerId = playerId;
-        }
-
-        return this;
+    interface Evaluator {
+        int CELL_VALUE = 1000;
+        public int evaluate(Game game, int playerId);
     }
 
-    public void push(int playerId, int x0, int y0, int x1, int y1) {
-        _state.push(playerId, x1, y1);
-    }
+    static class PossibleMovementsEvaluator implements Evaluator {
+        final static class Cell {
+            final private int[] _dimensions;
 
-    public String process() {
-        DecisionTreeNode decisionTree = new DecisionTreeNode(null, null, -1, GameRules.getPossibleDirections(_state, _playerId));
-
-        for (int i = 0; i < 10; i++) {
-            GameState        prediction = _state.clone();
-            DecisionTreeNode decision   = decisionTree;
-
-            while (!decision.hasUnexploredPredictions()) {
-                decision = decision.getRandomChildNode();
+            Cell(int... dimensions) {
+                _dimensions = dimensions;
             }
 
-            System.err.println(decision);
+            public Cell add(int... dimensions) {
+                int[] result = new int[_dimensions.length];
+
+                for (int i = 0; i < _dimensions.length; i++) {
+                    result[i] = _dimensions[i] + dimensions[i];
+                }
+
+                return new Cell(result);
+            }
+
+            public Cell add(Game.Direction direction) {
+                return add(direction.getDimensions());
+            }
+
+            @Override
+            public boolean equals(Object other) {
+                return this == other || !(other == null || getClass() != other.getClass()) && Arrays.equals(_dimensions, ((Cell) other)._dimensions);
+            }
+
+            @Override
+            public int hashCode() {
+                int result = 0;
+
+                for (int dimension : _dimensions) {
+                    result = 37 * result + dimension;
+                }
+
+                return result;
+            }
         }
 
-        return "UP";
+        private static class FreeAdjacentCellSpliterator implements Spliterator<Cell> {
+            private Game        _game;
+            private Queue<Cell> _queue   = new LinkedList<>();
+            private Set<Cell>   _visited = new HashSet<>(256);
+
+            public FreeAdjacentCellSpliterator(Game game, int[] initial) {
+                _game = game;
+
+                // add initial cell to queue
+                _addCellToQueue(new Cell(initial));
+            }
+
+            private void _addCellToQueue(Cell cell) {
+                if (_visited.contains(cell)) {
+                    return ;
+                }
+
+                _queue.add(cell);
+                _visited.add(cell);
+            }
+
+            @Override
+            public boolean tryAdvance(Consumer<? super Cell> action) {
+                if (_queue.isEmpty()) {
+                    return false;
+                }
+
+                Cell cell = _queue.remove();
+
+                for (Game.Direction direction : Game.Direction.values()) {
+                    Cell predicted = cell.add(direction);
+
+                    if (_game.isCellAvailable(predicted._dimensions)) {
+                        _addCellToQueue(predicted);
+                    }
+                }
+
+                if (_game.isCellAvailable(cell._dimensions)) {
+                    action.accept(cell);
+                }
+
+                return true;
+            }
+
+            @Override
+            public Spliterator<Cell> trySplit() {
+                return null;
+            }
+
+            @Override
+            public long estimateSize() {
+                return Long.MAX_VALUE;
+            }
+
+            @Override
+            public int characteristics() {
+                return DISTINCT | NONNULL;
+            }
+        }
+
+        @Override
+        public int evaluate(Game game, int playerId) {
+            return (int) StreamSupport.stream(new FreeAdjacentCellSpliterator(game, game.getPlayerPosition(playerId)), false).limit(200).count();
+        }
     }
-}
 
-class DecisionTreeNode {
-    private DecisionTreeNode _parent;
-    private Direction        _direction;
-    private int              _playerId;
-    private int              _score;
+    final public Game game = new Game();
 
-    private Map<Direction, DecisionTreeNode> _children = new HashMap<>(4);
+    public String makeDecision() {
+        Evaluator evaluator    = new PossibleMovementsEvaluator();
+        String    bestMovement = "OOPS!";
+        int       bestScore    = 0;
 
-    DecisionTreeNode(Direction direction, DecisionTreeNode parent, int playerId, Direction[] predictions) {
-        _direction = direction;
-        _parent    = parent;
-        _playerId  = playerId;
-
-        for (Direction prediction : predictions) {
-            if (prediction == null) {
+        for (Game.Direction direction : Game.Direction.values()) {
+            if (!game.isCellAvailable(direction, game.getPlayerPosition(game.pId))) {
                 continue;
             }
 
-            _children.put(prediction, null);
+            game.savepoint();
+            game.push(game.pId, direction);
+
+            int score = evaluator.evaluate(game, game.pId);
+
+            if (score > bestScore) {
+                bestScore    = score;
+                bestMovement = direction.getMovement();
+            }
+
+            game.revert();
         }
-    }
 
-    public Direction getUnexploredPrediction() {
-        return _children.entrySet().stream().filter(v -> v.getValue() == null).map(Map.Entry::getKey).findFirst().orElse(null);
-    }
+        System.out.println(bestScore);
+        System.out.println(bestMovement);
 
-    public boolean hasUnexploredPredictions() {
-        return getUnexploredPrediction() != null;
-    }
-
-    public DecisionTreeNode getRandomChildNode() {
-        return _children.entrySet().stream().sorted(Comparator.comparingInt(v -> new Random().nextInt())).findFirst().get().getValue();
+        return bestMovement;
     }
 }
