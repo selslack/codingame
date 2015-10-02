@@ -20,6 +20,30 @@ final public class Game {
         new int[][] { Direction.LEFT._dimensions, },
     };
 
+    static public double influence(GameState state, int playerId, int... point) {
+        int closest = Integer.MAX_VALUE;
+        int mine = Integer.MAX_VALUE;
+
+        for (GameState.Player player : state.getPlayers()) {
+            int current = state.field.manhattan(point, player.getPosition());
+
+            if (closest > current) {
+                closest = current;
+            }
+
+            if (player.getId() == playerId) {
+                mine = current;
+            }
+        }
+
+        if (mine < closest) {
+            return 1.0;
+        }
+        else {
+            return 1.0 / (mine - closest + 1);
+        }
+    }
+
     static public GameState move(GameState state, int playerId, Direction direction) {
         GameState.Player player = state.getPlayer(playerId);
         int connectionCount = 0;

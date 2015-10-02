@@ -85,7 +85,13 @@ final public class GameField implements Cloneable {
     }
 
     public int manhattan(final int[] a, final int[] b) {
-        return 0;
+        int result = 0;
+
+        for (int i = 0; i < _dimensions.length; i++) {
+            result = result + Math.abs(a[i] - b[i]);
+        }
+
+        return result;
     }
 
     public Optional<int[]> sum(final int[] initial, final int[]... components) {
