@@ -51,7 +51,7 @@ public class InputReader {
                 throw new IllegalArgumentException("Unknown map state symbol: " + symbol);
             }
 
-            state.getField().set(fieldStateSymbolToByteMap.get(symbol), i, line);
+            state.field.set(fieldStateSymbolToByteMap.get(symbol), i, line);
         }
     }
 }

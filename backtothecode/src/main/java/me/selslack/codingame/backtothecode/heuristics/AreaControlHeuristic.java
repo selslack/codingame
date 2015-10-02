@@ -9,13 +9,13 @@ public class AreaControlHeuristic implements Heuristic {
     public double score(GameState state, byte playerId, Game.Direction direction) {
         Game.move(state, playerId, direction);
 
-        GameField mask = state.getField().clone();
+        GameField mask = state.field.clone();
 
         for (int x = 0; x < GameState.X; x++) {
             for (int y = 0; y < GameState.Y; y++) {
                 int minDistance = Integer.MAX_VALUE;
 
-                if (state.getField().get(x, y) >= 0) {
+                if (state.field.get(x, y) >= 0) {
                     continue;
                 }
 
@@ -40,6 +40,6 @@ public class AreaControlHeuristic implements Heuristic {
             }
         }
 
-        return mask.count(v -> v == playerId) - state.getField().count(v -> v == playerId);
+        return mask.count(v -> v == playerId) - state.field.count(v -> v == playerId);
     }
 }

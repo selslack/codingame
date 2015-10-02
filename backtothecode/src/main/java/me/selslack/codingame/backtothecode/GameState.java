@@ -56,7 +56,7 @@ public class GameState implements Cloneable {
         Y          = 20;
 
     public int round;
-    private GameField field;
+    public GameField field;
     private Player[] players;
 
     final private int maxRounds;
@@ -102,10 +102,6 @@ public class GameState implements Cloneable {
 
     public Player[] getPlayers() {
         return players;
-    }
-
-    public GameField getField() {
-        return field;
     }
 
     @Override

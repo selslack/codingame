@@ -19,7 +19,7 @@ public class EarlyGameFillHeuristic implements Heuristic {
     public double score(GameState state, byte playerId, Game.Direction direction) {
         Game.move(state, playerId, direction);
 
-        if (state.getField().count(v -> v < 0) < 250) {
+        if (state.field.count(v -> v < 0) < 250) {
             return 0;
         }
 
@@ -35,7 +35,7 @@ public class EarlyGameFillHeuristic implements Heuristic {
     private double valueOfRegion(GameState state, byte playerId, int[][] region) {
         for (int x = region[0][0]; x <= region[1][0]; x++) {
             for (int y = region[0][1]; y <= region[1][1]; y++) {
-                if (state.getField().get(x, y) != -1 && state.getField().get(x, y) != playerId) {
+                if (state.field.get(x, y) != -1 && state.field.get(x, y) != playerId) {
                     return 0;
                 }
             }
@@ -68,7 +68,7 @@ public class EarlyGameFillHeuristic implements Heuristic {
 
         for (int x = region[0][0]; x <= region[1][0]; x++) {
             for (int y = region[0][1]; y <= region[1][1]; y++) {
-                isFilled = isFilled && state.getField().get(x, y) == playerId;
+                isFilled = isFilled && state.field.get(x, y) == playerId;
             }
         }
 
@@ -77,13 +77,13 @@ public class EarlyGameFillHeuristic implements Heuristic {
         }
 
         for (int x = region[0][0]; x <= region[1][0]; x++) {
-            filled += state.getField().get(x, region[0][1]) == playerId ? 1 : 0;
-            filled += state.getField().get(x, region[1][1]) == playerId ? 1 : 0;
+            filled += state.field.get(x, region[0][1]) == playerId ? 1 : 0;
+            filled += state.field.get(x, region[1][1]) == playerId ? 1 : 0;
         }
 
         for (int y = region[0][1]; y <= region[1][1]; y++) {
-            filled += state.getField().get(region[0][0], y) == playerId ? 1 : 0;
-            filled += state.getField().get(region[1][0], y) == playerId ? 1 : 0;
+            filled += state.field.get(region[0][0], y) == playerId ? 1 : 0;
+            filled += state.field.get(region[1][0], y) == playerId ? 1 : 0;
         }
 
         return 100 + filled * 30;

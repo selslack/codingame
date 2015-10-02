@@ -20,7 +20,7 @@ public class Solver {
 
         return map.entrySet().stream()
             .sorted(Comparator.comparingDouble(v -> -v.getValue()))
-            .map(v -> state.getField().sum(state.getPlayer(playerId).getPosition(), v.getKey().getDimensions()).orElse(new int[] { -1, -1 }))
+            .map(v -> state.field.sum(state.getPlayer(playerId).getPosition(), v.getKey().getDimensions()).orElse(new int[] { -1, -1 }))
             .findFirst()
             .orElse(new int[] { -1, -1 });
     }

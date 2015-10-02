@@ -8,6 +8,6 @@ public class FillCellHeuristic implements Heuristic {
     public double score(GameState state, byte playerId, Game.Direction direction) {
         Game.move(state, playerId, direction);
 
-        return state.getField().count(v -> v == playerId);
+        return state.field.count(v -> v == playerId);
     }
 }

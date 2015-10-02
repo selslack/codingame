@@ -2,6 +2,7 @@ package me.selslack.codingame.backtothecode;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
@@ -20,10 +21,9 @@ final public class Game {
     };
 
     static public GameState move(GameState state, int playerId, Direction direction) {
-        GameField field = state.getField();
         GameState.Player player = state.getPlayer(playerId);
         int connectionCount = 0;
-        int[] newPosition = state.getField()
+        int[] newPosition = state.field
             .sum(player.getPosition(), direction._dimensions)
             .orElse(new int[]{ -1, -1 });
 
@@ -33,16 +33,16 @@ final public class Game {
             return state;
         }
 
-        field.set(playerId, v -> v == -1, newPosition);
+        state.field.set(playerId, v -> v == -1, newPosition);
 
         for (Direction directionConnection : Direction.directions()) {
-            Optional<int[]> connCoords = field.sum(player.getPosition(), directionConnection.getDimensions());
+            Optional<int[]> connCoords = state.field.sum(player.getPosition(), directionConnection.getDimensions());
 
             if (! connCoords.isPresent()) {
                 continue;
             }
 
-            if (field.get(connCoords.get()) == playerId) {
+            if (state.field.get(connCoords.get()) == playerId) {
                 connectionCount++;
             }
         }
@@ -52,10 +52,10 @@ final public class Game {
         }
 
         for (int[][] point : fillCheckPositions) {
-            fill(
-                field,
+            state.field = fill(
+                state.field,
                 playerId,
-                field.sum(player.getPosition(), point)
+                state.field.sum(player.getPosition(), point)
                     .orElse(player.getPosition())
             );
         }
@@ -63,32 +63,34 @@ final public class Game {
         return state;
     }
 
-    static private void fill(GameField field, int playerId, int[] coordinates) {
+    static private GameField fill(GameField field, int playerId, int[] coordinates) {
         if (field.get(coordinates) >= 0) {
-            return ;
+            return field;
         }
 
-        int[][] fill = StreamSupport.stream(new AdjacentCellSpliterator(field, coordinates), false).toArray(int[][]::new);
+        GameField shadow = field.clone();
 
-        for (int[] point : fill) {
-            for (int[][] check : fillCheckPositions) {
-                Optional<int[]> sum = field.sum(point, check);
+        try (Stream<int[]> stream = StreamSupport.stream(new AdjacentCellSpliterator(field, coordinates), false)) {
+            for (int[] point : (Iterable<int[]>) stream::iterator) {
+                for (int[][] check : fillCheckPositions) {
+                    Optional<int[]> sum = field.sum(point, check);
 
-                if (! sum.isPresent()) {
-                    return ;
-                }
+                    if (! sum.isPresent()) {
+                        return field;
+                    }
 
-                int data = field.get(sum.get());
+                    int data = field.get(sum.get());
 
-                if (data != playerId && data > 0) {
-                    return ;
+                    if (data != playerId && data > 0) {
+                        return field;
+                    }
+
+                    shadow.set(playerId, sum.get());
                 }
             }
         }
 
-        for (int[] point : fill) {
-            field.set((byte) playerId, point);
-        }
+        return shadow;
     }
 
     static public enum Direction {
@@ -116,7 +118,7 @@ final public class Game {
 
     private static class AdjacentCellSpliterator implements Spliterator<int[]> {
         private GameField field;
-        private Queue<int[]> queue = new LinkedList<>();
+        private LinkedList<int[]> queue = new LinkedList<>();
         private Map<Integer, int[]> visited = new HashMap<>(256);
 
         public AdjacentCellSpliterator(GameField field, int[] initial) {
@@ -133,7 +135,7 @@ final public class Game {
                 return ;
             }
 
-            queue.add(cell);
+            queue.addFirst(cell);
             visited.put(hash, cell);
         }
 
