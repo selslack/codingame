@@ -5,7 +5,7 @@ import me.selslack.codingame.backtothecode.GameState;
 
 abstract public class FutureStateHeuristic implements Heuristic {
     @Override
-    public double score(GameState state, byte playerId, Game.Direction direction) {
+    public double score(GameState state, int playerId, int[] point) {
         return 0;
     }
 }

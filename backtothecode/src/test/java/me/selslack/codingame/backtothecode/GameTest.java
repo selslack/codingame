@@ -20,7 +20,7 @@ public class GameTest {
         GameState state = new GameState(1);
 
         state.getPlayer(0).setPosition(5, 5);
-        state.getField().set(0, 5, 5);
+        state.field.set(0, 5, 5);
 
         Game.move(state, 0, Game.Direction.UP);
         Game.move(state, 0, Game.Direction.RIGHT);
@@ -36,6 +36,9 @@ public class GameTest {
         Game.move(state, 0, Game.Direction.LEFT);
         Game.move(state, 0, Game.Direction.LEFT);
         Game.move(state, 0, Game.Direction.UP);
+
+        assertEquals(0, state.field.get(6, 5));
+        assertEquals(-1, state.field.get(4, 5));
 
         return state;
     }

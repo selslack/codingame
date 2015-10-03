@@ -36,7 +36,7 @@ final public class Game {
             }
         }
 
-        if (mine < closest) {
+        if (mine == closest) {
             return 1.0;
         }
         else {
@@ -45,15 +45,24 @@ final public class Game {
     }
 
     static public GameState move(GameState state, int playerId, Direction direction) {
+        int[] newPosition = state.field
+            .sum(state.getPlayer(playerId).getPosition(), direction._dimensions)
+            .orElse(new int[]{ -1, -1 });
+
+        return move(state, playerId, newPosition);
+    }
+
+    static public GameState move(GameState state, int playerId, int[] newPosition) {
         GameState.Player player = state.getPlayer(playerId);
         int connectionCount = 0;
-        int[] newPosition = state.field
-            .sum(player.getPosition(), direction._dimensions)
-            .orElse(new int[]{ -1, -1 });
+
+        if (state.field.manhattan(player.getPosition(), newPosition) > 1 && newPosition[0] != -1) {
+            throw new IllegalArgumentException("Invalid position for player: " + playerId);
+        }
 
         player.setPosition(newPosition);
 
-        if (! player.isActive()) {
+        if (!player.isActive()) {
             return state;
         }
 

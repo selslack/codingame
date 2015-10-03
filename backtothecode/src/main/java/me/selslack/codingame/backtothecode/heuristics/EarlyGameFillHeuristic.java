@@ -16,8 +16,8 @@ public class EarlyGameFillHeuristic implements Heuristic {
     };
 
     @Override
-    public double score(GameState state, byte playerId, Game.Direction direction) {
-        Game.move(state, playerId, direction);
+    public double score(GameState state, int playerId, int[] point) {
+        Game.move(state, playerId, point);
 
         if (state.field.count(v -> v < 0) < 250) {
             return 0;
@@ -32,7 +32,7 @@ public class EarlyGameFillHeuristic implements Heuristic {
         return score;
     }
 
-    private double valueOfRegion(GameState state, byte playerId, int[][] region) {
+    private double valueOfRegion(GameState state, int playerId, int[][] region) {
         for (int x = region[0][0]; x <= region[1][0]; x++) {
             for (int y = region[0][1]; y <= region[1][1]; y++) {
                 if (state.field.get(x, y) != -1 && state.field.get(x, y) != playerId) {

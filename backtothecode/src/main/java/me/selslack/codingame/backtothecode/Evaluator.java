@@ -12,12 +12,12 @@ public class Evaluator {
         heuristics.put(heuristic, influence);
     }
 
-    public double evaluate(GameState state, byte playerId, Game.Direction direction) {
+    public double evaluate(GameState state, int playerId, int[] newPosition) {
         double score = 0.0;
 
         for (Map.Entry<Heuristic, Double> entry : heuristics.entrySet()) {
             long startTime = System.nanoTime();
-            score += entry.getKey().score(state.clone(), playerId, direction) * entry.getValue();
+            score += entry.getKey().score(state.clone(), playerId, newPosition) * entry.getValue();
             System.err.println(entry.getKey().getClass().toString() + ": " + ((System.nanoTime() - startTime) / 1000000.0));
         }
 
