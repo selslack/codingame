@@ -1,5 +1,8 @@
 package me.selslack.codingame.backtothecode;
 
+import me.selslack.codingame.backtothecode.strategy.RectangleStrategySupplier;
+import me.selslack.codingame.backtothecode.strategy.SimpleStrategySupplier;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -22,6 +25,9 @@ public class Player {
         GameState state = InputReader.readOpponentCount(in);
         Solver solver = new Solver();
 
+        solver.addStrategySupplier(new SimpleStrategySupplier());
+        solver.addStrategySupplier(new RectangleStrategySupplier());
+
         // game loop
         while (true) {
             InputReader.readRoundNumber(state, in);
@@ -35,10 +41,7 @@ public class Player {
                 InputReader.readMapState(state, i, in);
             }
 
-            long start = System.nanoTime();
-            int[] result = solver.solve(state, (byte) 0);
-
-            out.println(result[0] + " " + result[1] + " " + String.format("%.2f", (float) (System.nanoTime() - start) / 1000000) + " MS");
+            out.println(solver.solve(state, 0));
         }
     }
 

@@ -6,14 +6,14 @@ import java.util.Scanner;
 
 public class InputReader {
     final static private
-        Map<Character, Byte> fieldStateSymbolToByteMap = new HashMap<>();
+        Map<Character, Integer> fieldStateSymbolToByteMap = new HashMap<>();
 
     static {
-        fieldStateSymbolToByteMap.put('.', (byte) -1);
-        fieldStateSymbolToByteMap.put('0', (byte) 0);
-        fieldStateSymbolToByteMap.put('1', (byte) 1);
-        fieldStateSymbolToByteMap.put('2', (byte) 2);
-        fieldStateSymbolToByteMap.put('3', (byte) 3);
+        fieldStateSymbolToByteMap.put('.', -1);
+        fieldStateSymbolToByteMap.put('0',  0);
+        fieldStateSymbolToByteMap.put('1',  1);
+        fieldStateSymbolToByteMap.put('2',  2);
+        fieldStateSymbolToByteMap.put('3',  3);
     }
 
     static public GameState readOpponentCount(Scanner in) {

@@ -40,7 +40,7 @@ final public class Game {
             return 1.0;
         }
         else {
-            return 1.0 / (mine - closest + 1);
+            return 1.0 / (1 + 0.01 * Math.exp((mine - closest) * 2));
         }
     }
 
@@ -56,7 +56,7 @@ final public class Game {
         GameState.Player player = state.getPlayer(playerId);
         int connectionCount = 0;
 
-        if (state.field.manhattan(player.getPosition(), newPosition) > 1 && newPosition[0] != -1) {
+        if (state.field.manhattan(player.getPosition(), newPosition) > 1 && newPosition[0] != -1 && newPosition[1] != -1) {
             throw new IllegalArgumentException("Invalid position for player: " + playerId);
         }
 

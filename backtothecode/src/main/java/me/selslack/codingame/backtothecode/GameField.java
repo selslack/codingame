@@ -118,10 +118,6 @@ final public class GameField implements Cloneable {
         return Optional.of(result);
     }
 
-    public void fill(int value) {
-        fill(value, v -> true);
-    }
-
     public GameField fill(int value, IntPredicate predicate) {
         for (int i = 0; i < _map.length; i++) {
             if (predicate.test(_map[i])) {
