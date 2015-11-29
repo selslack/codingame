@@ -34,15 +34,11 @@ public class InputReader {
     static public void readZombieData(GameState state, Scanner in, boolean ignoreServerData) {
         if (ignoreServerData) {
             for (int i = in.nextInt(); i > 0; i--) {
-                int id = in.nextInt();
                 in.nextInt();
                 in.nextInt();
-                int x = in.nextInt();
-                int y = in.nextInt();
-
-                if (id == 18) {
-                    System.err.println(x + ":" + y);
-                }
+                in.nextInt();
+                in.nextInt();
+                in.nextInt();
             }
         }
         else {

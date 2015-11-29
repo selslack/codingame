@@ -9,10 +9,13 @@ public class GameState implements Cloneable {
     private List<Human> humans;
     private List<Human> zombies;
 
+    public int score;
+
     public GameState() {
         this.ash = new Human(Human.Type.ASH, 0, 0, 0);
         this.humans = new LinkedList<>();
         this.zombies = new LinkedList<>();
+        this.score = 0;
     }
 
     public Human getAsh() {

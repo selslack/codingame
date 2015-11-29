@@ -4,36 +4,38 @@ import java.util.Comparator;
 
 public class Game {
     static final public int KILL_DISTANCE = 2000;
-    static final public int[] KILL_MOD = new int[] {1};
+    static final public int[] KILL_MOD = new int[] {1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946};
 
-    static public void process(GameState state, int x, int y) {
-        Human presentAsh = state.getAsh();
-        Human futureAsh = presentAsh.clone();
-
-        humanMovement(futureAsh, x, y);
+    static public void process(GameState state, int x, int y, boolean debug) {
+        int humansAlive = (int) state.getHumans().stream().filter(v -> v.isAlive).count();
+        int kills = 0;
 
         for (Human zombie : state.getZombies()) {
-            int distanceToPresentAsh = Utils.distance(presentAsh, zombie);
+            int distanceToPresentAsh = Utils.distance(state.getAsh(), zombie);
 
             Human zombieTarget = state.getHumans().stream()
                 .filter(v -> v.isAlive && Utils.distance(v, zombie) <= distanceToPresentAsh)
                 .sorted(Comparator.comparingInt(v -> Utils.distance(v, zombie)))
                 .findFirst()
-                .orElse(presentAsh);
+                .orElse(state.getAsh());
 
             humanMovement(zombie, zombieTarget);
-
-            if (Utils.distance(futureAsh, zombie) <= KILL_DISTANCE) {
-                zombie.isAlive = false;
-            }
-
-            if (zombieTarget != presentAsh && zombie.isAlive && Utils.distance(zombie, zombieTarget) < 1) {
-                zombieTarget.isAlive = false;
-            }
         }
 
-        presentAsh.x = futureAsh.x;
-        presentAsh.y = futureAsh.y;
+        humanMovement(state.getAsh(), x, y);
+
+        for (Human zombie : state.getZombies()) {
+            if (zombie.isAlive && Utils.distance(state.getAsh(), zombie) <= KILL_DISTANCE) {
+                zombie.isAlive = false;
+                state.score += humansAlive * humansAlive * 10 * KILL_MOD[kills++];
+            }
+
+            for (Human human : state.getHumans()) {
+                if (zombie.isAlive && human.x == zombie.x && human.y == zombie.y) {
+                    human.isAlive = false;
+                }
+            }
+        }
     }
 
     static private void humanMovement(Human object, Human target) {

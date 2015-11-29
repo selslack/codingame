@@ -32,9 +32,7 @@ public class Player {
 
             GameState futureState = state.clone();
 
-            Game.process(futureState, futureState.getAsh().x, futureState.getAsh().y);
-
-            System.err.println(futureState);
+            Game.process(futureState, futureState.getAsh().x, futureState.getAsh().y, false);
 
             Human target = futureState.getZombies()
                 .stream()
@@ -44,7 +42,11 @@ public class Player {
 
             out.println(target.x + " " + target.y);
 
-            Game.process(state, target.x, target.y);
+            Game.process(state, target.x, target.y, true);
+
+            if (state.getHumans().stream().filter(v -> v.isAlive).count() < 1 || state.getZombies().stream().filter(v -> v.isAlive).count() < 1) {
+                break;
+            }
         }
     }
 
