@@ -23,7 +23,7 @@ public class Solver {
 
     public Waypoint run() {
         long startTime = System.currentTimeMillis();
-        int plyLimit = 8;
+        int plyLimit = 12;
 
         while (System.currentTimeMillis() - startTime < timeLimit) {
             GameState simulationState = state.clone();
@@ -32,7 +32,7 @@ public class Solver {
             // Select
             while (node.expanded && !simulationState.isTerminal()) {
                 node = node.children.stream()
-                    .sorted(Comparator.comparingDouble(v -> -(v.score / (v.visits + Double.MIN_VALUE) + Math.sqrt(2 * Math.log(v.parent.visits) / (v.visits + Double.MIN_VALUE)) + rnd.nextDouble() * 0.0000001)))
+                    .sorted(Comparator.comparingDouble(v -> -(v.score / (v.visits + Double.MIN_VALUE) + Math.sqrt(2 * Math.log(v.parent.visits) / (v.visits + Double.MIN_VALUE)))))
                     .findFirst()
                     .orElseGet(null);
 
@@ -55,7 +55,10 @@ public class Solver {
                 }
 
                 Waypoint action = getPossibleMoves(simulationState).stream()
-                    .map(v -> { v.marker = rnd.nextInt(); return v; })
+                    .map(v -> {
+                        v.marker = rnd.nextInt();
+                        return v;
+                    })
                     .sorted(Comparator.comparingInt(v -> v.marker))
                     .findFirst()
                     .orElse(null);
@@ -81,8 +84,8 @@ public class Solver {
         LinkedList<Waypoint> result = new LinkedList<>();
 
         result.addAll(new FlexibleWaypointGenerator(1000, 5).generate(state));
-//        result.addAll(new HumansWaypointGenerator().generate(state));
-//        result.addAll(new ClusteringWaypointGenerator(new ZombiesWaypointGenerator(), 1750).generate(state));
+        result.addAll(new HumansWaypointGenerator().generate(state));
+        result.addAll(new ZombiesWaypointGenerator().generate(state));
 
         return result;
     }
