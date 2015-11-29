@@ -9,12 +9,14 @@ public class GameState implements Cloneable {
     private List<Human> humans;
     private List<Human> zombies;
 
+    public int tick;
     public int score;
 
     public GameState() {
         this.ash = new Human(Human.Type.ASH, 0, 0, 0);
         this.humans = new LinkedList<>();
         this.zombies = new LinkedList<>();
+        this.tick = 0;
         this.score = 0;
     }
 
@@ -28,6 +30,18 @@ public class GameState implements Cloneable {
 
     public List<Human> getZombies() {
         return zombies;
+    }
+
+    public boolean isTerminal() {
+        return isWin() || isLose();
+    }
+
+    public boolean isWin() {
+        return zombies.stream().noneMatch(v -> v.isAlive);
+    }
+
+    public boolean isLose() {
+        return humans.stream().noneMatch(v -> v.isAlive);
     }
 
     @Override
@@ -50,10 +64,6 @@ public class GameState implements Cloneable {
 
     @Override
     public String toString() {
-        return "GameState{" +
-            "ash=" + ash +
-            ", humans=" + humans +
-            ", zombies=" + zombies +
-            '}';
+        return "GameState{score=" + score + ", terminal=" + isTerminal() + ", ash=" + ash + ", humans=" + humans + ", zombies=" + zombies + "}";
     }
 }

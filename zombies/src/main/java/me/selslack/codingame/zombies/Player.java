@@ -1,9 +1,10 @@
 package me.selslack.codingame.zombies;
 
+import me.selslack.codingame.zombies.mcts.*;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.Comparator;
 import java.util.Scanner;
 
 public class Player {
@@ -30,23 +31,11 @@ public class Player {
 
             ignoreServerData = true;
 
-            GameState futureState = state.clone();
+            Waypoint p = new Solver(state, 95).run();
 
-            Game.process(futureState, futureState.getAsh().x, futureState.getAsh().y, false);
+            out.println(p.x + " " + p.y);
 
-            Human target = futureState.getZombies()
-                .stream()
-                .sorted(Comparator.comparingInt(v -> -Utils.threat(futureState.getAsh(), v, state.getZombies(), state.getHumans())))
-                .findFirst()
-                .orElseThrow(RuntimeException::new);
-
-            out.println(target.x + " " + target.y);
-
-            Game.process(state, target.x, target.y, true);
-
-            if (state.getHumans().stream().filter(v -> v.isAlive).count() < 1 || state.getZombies().stream().filter(v -> v.isAlive).count() < 1) {
-                break;
-            }
+            Game.process(state, p.x, p.y, false);
         }
     }
 

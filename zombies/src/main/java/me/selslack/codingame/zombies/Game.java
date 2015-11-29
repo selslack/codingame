@@ -1,6 +1,7 @@
 package me.selslack.codingame.zombies;
 
 import java.util.Comparator;
+import java.util.List;
 
 public class Game {
     static final public int KILL_DISTANCE = 2000;
@@ -11,15 +12,7 @@ public class Game {
         int kills = 0;
 
         for (Human zombie : state.getZombies()) {
-            int distanceToPresentAsh = Utils.distance(state.getAsh(), zombie);
-
-            Human zombieTarget = state.getHumans().stream()
-                .filter(v -> v.isAlive && Utils.distance(v, zombie) <= distanceToPresentAsh)
-                .sorted(Comparator.comparingInt(v -> Utils.distance(v, zombie)))
-                .findFirst()
-                .orElse(state.getAsh());
-
-            humanMovement(zombie, zombieTarget);
+            humanMovement(zombie, calculateYummyBrains(zombie, state.getAsh(), state.getHumans()));
         }
 
         humanMovement(state.getAsh(), x, y);
@@ -36,6 +29,12 @@ public class Game {
                 }
             }
         }
+
+        if (state.isLose()) {
+            state.score = 0;
+        }
+
+        state.tick++;
     }
 
     static private void humanMovement(Human object, Human target) {
@@ -57,5 +56,16 @@ public class Game {
             human.x += Math.floor(Math.nextUp(human.type.getSpeed() * Math.cos(angle)));
             human.y += Math.floor(Math.nextUp(human.type.getSpeed() * Math.sin(angle)));
         }
+    }
+
+    static public Human calculateYummyBrains(final Human zombie, final Human ash, final List<Human> humans) {
+        int distanceToAsh = Utils.distance(ash, zombie);
+
+        return humans
+            .stream()
+            .filter(v -> v.isAlive && Utils.distance(v, zombie) <= distanceToAsh)
+            .sorted(Comparator.comparingInt(v -> Utils.distance(v, zombie)))
+            .findFirst()
+            .orElse(ash);
     }
 }
