@@ -3,6 +3,7 @@ package me.selslack.codingame.zombies;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.Comparator;
 import java.util.Scanner;
 
 public class Player {
@@ -19,7 +20,32 @@ public class Player {
     }
 
     public void run() {
-        // @todo implement logic
+        GameState state = new GameState();
+        boolean ignoreServerData = false;
+
+        while (true) {
+            InputReader.readPlayerData(state, in, ignoreServerData);
+            InputReader.readHumansData(state, in, ignoreServerData);
+            InputReader.readZombieData(state, in, ignoreServerData);
+
+            ignoreServerData = true;
+
+            GameState futureState = state.clone();
+
+            Game.process(futureState, futureState.getAsh().x, futureState.getAsh().y);
+
+            System.err.println(futureState);
+
+            Human target = futureState.getZombies()
+                .stream()
+                .sorted(Comparator.comparingInt(v -> -Utils.threat(futureState.getAsh(), v, state.getZombies(), state.getHumans())))
+                .findFirst()
+                .orElseThrow(RuntimeException::new);
+
+            out.println(target.x + " " + target.y);
+
+            Game.process(state, target.x, target.y);
+        }
     }
 
     public static void main(String args[]) {
