@@ -7,8 +7,8 @@ public class Game {
     static final public int KILL_DISTANCE = 2000;
     static final public int[] KILL_MOD = new int[] {1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393, 196418, 317811};
 
-    static public void process(GameState state) {
-        process(state, state.getAsh().x, state.getAsh().y);
+    static public void process(GameState state, Waypoint waypoint) {
+        process(state, waypoint.x, waypoint.y);
     }
 
     static public void process(GameState state, int x, int y) {

@@ -1,6 +1,7 @@
 package me.selslack.codingame.zombies.mcts;
 
 import me.selslack.codingame.zombies.GameState;
+import me.selslack.codingame.zombies.Waypoint;
 
 import java.util.LinkedList;
 import java.util.List;

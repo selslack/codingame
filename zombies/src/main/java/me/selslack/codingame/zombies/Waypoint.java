@@ -1,6 +1,4 @@
-package me.selslack.codingame.zombies.mcts;
-
-import me.selslack.codingame.zombies.Human;
+package me.selslack.codingame.zombies;
 
 public class Waypoint {
     final public int x;

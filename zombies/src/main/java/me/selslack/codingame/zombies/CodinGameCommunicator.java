@@ -1,21 +1,12 @@
 package me.selslack.codingame.zombies;
 
-import me.selslack.codingame.zombies.mcts.Waypoint;
-
 import java.util.Scanner;
 
 public class CodinGameCommunicator implements Communicator {
     final private Scanner reader = new Scanner(System.in);
 
-    private boolean toDevNull = false;
-
     @Override
-    public void wasteNextRead() {
-        toDevNull = true;
-    }
-
-    @Override
-    public void readState(GameState state) {
+    public void readState(GameState state, boolean toDevNull) {
         if (toDevNull) {
             // Ash
             reader.nextInt();
@@ -73,8 +64,6 @@ public class CodinGameCommunicator implements Communicator {
                 reader.nextInt();
             }
         }
-
-        toDevNull = false;
     }
 
     @Override

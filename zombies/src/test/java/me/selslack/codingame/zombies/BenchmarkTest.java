@@ -1,7 +1,6 @@
 package me.selslack.codingame.zombies;
 
 import me.selslack.codingame.zombies.mcts.Solver;
-import me.selslack.codingame.zombies.mcts.Waypoint;
 import me.selslack.codingame.zombies.server.GameServer;
 import org.openjdk.jmh.annotations.*;
 

@@ -1,11 +1,5 @@
 package me.selslack.codingame.zombies;
 
-import me.selslack.codingame.zombies.mcts.Waypoint;
-
-import java.util.IntSummaryStatistics;
-import java.util.LinkedList;
-import java.util.List;
-
 public class Utils {
     static public int distance(int x1, int y1, int x2, int y2) {
         return (int) Math.ceil(

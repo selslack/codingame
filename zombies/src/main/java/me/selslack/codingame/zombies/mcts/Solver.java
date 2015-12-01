@@ -2,6 +2,7 @@ package me.selslack.codingame.zombies.mcts;
 
 import me.selslack.codingame.zombies.Game;
 import me.selslack.codingame.zombies.GameState;
+import me.selslack.codingame.zombies.Waypoint;
 
 import java.util.*;
 
@@ -14,6 +15,8 @@ public class Solver {
     final private GameState state;
     final private int timeLimit;
 
+    public int playouts = 0;
+
     public Solver(GameState state, int timeLimit) {
         this.root = new Node(null, state.getAsh().x, state.getAsh().y);
         this.state = state.clone();
@@ -22,7 +25,9 @@ public class Solver {
 
     public Waypoint run() {
         long startTime = System.currentTimeMillis();
-        int plyLimit = 12;
+        int plyLimit = 20;
+
+        playouts = 0;
 
         while (System.currentTimeMillis() - startTime < timeLimit) {
             GameState simulationState = state.clone();
@@ -57,9 +62,11 @@ public class Solver {
 
                 node = node.parent;
             }
+
+            playouts++;
         }
 
-        return root.children.stream().sorted(Comparator.comparingInt(v -> -v.score)).findFirst().orElse(null).point;
+        return root.children.stream().sorted(Comparator.comparingInt((Node v) -> v.score).reversed()).findFirst().orElse(null).point;
     }
 
     static public void playout(GameState state, int plyLimit) {
@@ -78,7 +85,6 @@ public class Solver {
     static public List<Waypoint> getPossibleMoves(GameState state) {
         ArrayList<Waypoint> result = new ArrayList<>(64);
 
-        result.addAll(flexy.generate(state));
         result.addAll(new HumansWaypointGenerator().generate(state));
         result.addAll(new ZombiesWaypointGenerator().generate(state));
 

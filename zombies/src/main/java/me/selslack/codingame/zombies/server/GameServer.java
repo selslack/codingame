@@ -3,16 +3,11 @@ package me.selslack.codingame.zombies.server;
 import me.selslack.codingame.zombies.Game;
 import me.selslack.codingame.zombies.GameState;
 import me.selslack.codingame.zombies.Player;
-import me.selslack.codingame.zombies.mcts.Waypoint;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class GameServer {
-    static final private ExecutorService executor = Executors.newFixedThreadPool(2);
+    static final private ForkJoinPool executor = new ForkJoinPool(1);
     static final public GameState[] cases = new GameState[3];
 
     static {
@@ -53,38 +48,26 @@ public class GameServer {
             .state;
     }
 
-    final private GameServerCommunicator communicator;
-
-    final private GameState state;
-    final private Runnable player;
-
-    public GameServer(GameState start) {
-        this.state = start;
-        this.communicator = new GameServerCommunicator();
-        this.player = () -> {
-            new Player(communicator).run();
-        };
+    static public GameTask run(GameState state) {
+        return (GameTask) executor.submit(new GameTask(state));
     }
 
-    public int run() {
-        Future<?> future = executor.submit(player);
+    static public class GameTask extends RecursiveTask<Integer> {
+        final private GameState state;
 
-        try {
+        private GameTask(GameState start) {
+            this.state = start.clone();
+        }
+
+        @Override
+        protected Integer compute() {
+            Player player = new Player(new InternalCommunicator());
+
             while (!state.isTerminal()) {
-                Optional<Waypoint> result = communicator.sendState(state).readCommand(130, TimeUnit.MILLISECONDS);
-
-                if (result.isPresent()) {
-                    Game.process(state, result.get().x, result.get().y);
-                }
-                else {
-                    throw new InterruptedException("Client didn't provide response in time");
-                }
+                Game.process(state, ForkJoinTask.adapt(() -> player.process(state.clone())).fork().join());
             }
 
             return state.score;
-        }
-        catch (InterruptedException e) {
-            return 0;
         }
     }
 }
