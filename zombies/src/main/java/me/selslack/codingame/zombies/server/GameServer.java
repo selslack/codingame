@@ -3,6 +3,7 @@ package me.selslack.codingame.zombies.server;
 import me.selslack.codingame.zombies.Game;
 import me.selslack.codingame.zombies.GameState;
 import me.selslack.codingame.zombies.Player;
+import me.selslack.codingame.zombies.mcts.Config;
 
 import java.util.concurrent.*;
 
@@ -48,23 +49,25 @@ public class GameServer {
             .state;
     }
 
-    static public GameTask run(GameState state) {
-        return (GameTask) executor.submit(new GameTask(state));
+    static public GameTask run(GameState state, Config config) {
+        return (GameTask) executor.submit(new GameTask(state, config));
     }
 
     static public class GameTask extends RecursiveTask<Integer> {
         final private GameState state;
+        final private Config config;
 
-        private GameTask(GameState start) {
+        private GameTask(GameState start, Config config) {
+            this.config = config;
             this.state = start.clone();
         }
 
         @Override
         protected Integer compute() {
-            Player player = new Player(new InternalCommunicator());
+            Player player = new Player(state.clone(), new InternalCommunicator(), config);
 
             while (!state.isTerminal()) {
-                Game.process(state, ForkJoinTask.adapt(() -> player.process(state.clone())).fork().join());
+                Game.process(state, ForkJoinTask.adapt(() -> player.process()).fork().join());
             }
 
             return state.score;

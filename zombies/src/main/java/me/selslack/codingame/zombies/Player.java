@@ -5,24 +5,27 @@ import me.selslack.codingame.zombies.mcts.*;
 public class Player {
     final private Communicator communicator;
     final private GameState state;
+    final private Solver solver;
 
-    public Player(Communicator communicator) {
+    public Player(Communicator communicator, Config config) {
+        this(new GameState(), communicator, config);
+    }
+
+    public Player(GameState state, Communicator communicator, Config config) {
+        this.state = state;
         this.communicator = communicator;
-        this.state = new GameState();
+        this.solver = new Solver(state, config);
     }
 
     public void run() {
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             communicator.readState(state, i > 0);
-            communicator.sendCommand(process(state));
+            communicator.sendCommand(process());
         }
     }
 
-    public Waypoint process(GameState state) {
-        Solver solver = new Solver(state, 95);
+    public Waypoint process() {
         Waypoint p = solver.run();
-
-        System.out.println("Played games: " + solver.playouts);
 
         Game.process(state, p.x, p.y);
 
@@ -30,6 +33,6 @@ public class Player {
     }
 
     public static void main(String args[]) {
-        new Player(new CodinGameCommunicator()).run();
+        new Player(new CodinGameCommunicator(), new Config()).run();
     }
 }
