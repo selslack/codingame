@@ -3,13 +3,12 @@ package me.selslack.codingame.zombies.mcts;
 import me.selslack.codingame.zombies.Game;
 import me.selslack.codingame.zombies.GameState;
 
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class Solver {
     static final private Random rnd = new Random();
+
+    static final WaypointGenerator flexy = new FlexibleWaypointGenerator(1000, 5);
 
     final private Node root;
     final private GameState state;
@@ -36,7 +35,7 @@ public class Solver {
                     .findFirst()
                     .orElseGet(null);
 
-                Game.process(simulationState, node.point.x, node.point.y, false);
+                Game.process(simulationState, node.point.x, node.point.y);
             }
 
             // Expand
@@ -49,22 +48,7 @@ public class Solver {
             node.expanded = true;
 
             // Playout
-            for (int i = 0; i < plyLimit; i++) {
-                if (simulationState.isTerminal()) {
-                    break;
-                }
-
-                Waypoint action = getPossibleMoves(simulationState).stream()
-                    .map(v -> {
-                        v.marker = rnd.nextInt();
-                        return v;
-                    })
-                    .sorted(Comparator.comparingInt(v -> v.marker))
-                    .findFirst()
-                    .orElse(null);
-
-                Game.process(simulationState, action.x, action.y, false);
-            }
+            playout(simulationState, plyLimit);
 
             // Backpropagate
             while (node != null) {
@@ -75,15 +59,26 @@ public class Solver {
             }
         }
 
-        System.err.println(root.children);
-
         return root.children.stream().sorted(Comparator.comparingInt(v -> -v.score)).findFirst().orElse(null).point;
     }
 
-    public List<Waypoint> getPossibleMoves(GameState state) {
-        LinkedList<Waypoint> result = new LinkedList<>();
+    static public void playout(GameState state, int plyLimit) {
+        for (int i = 0; i < plyLimit; i++) {
+            if (state.isTerminal()) {
+                break;
+            }
 
-        result.addAll(new FlexibleWaypointGenerator(1000, 5).generate(state));
+            List<Waypoint> actions = getPossibleMoves(state);
+            Waypoint action = actions.get(rnd.nextInt(actions.size()));
+
+            Game.process(state, action.x, action.y);
+        }
+    }
+
+    static public List<Waypoint> getPossibleMoves(GameState state) {
+        ArrayList<Waypoint> result = new ArrayList<>(64);
+
+        result.addAll(flexy.generate(state));
         result.addAll(new HumansWaypointGenerator().generate(state));
         result.addAll(new ZombiesWaypointGenerator().generate(state));
 

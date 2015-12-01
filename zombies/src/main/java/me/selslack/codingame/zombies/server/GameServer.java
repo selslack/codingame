@@ -1,14 +1,19 @@
 package me.selslack.codingame.zombies.server;
 
+import me.selslack.codingame.zombies.Game;
 import me.selslack.codingame.zombies.GameState;
-import me.selslack.codingame.zombies.Human;
 import me.selslack.codingame.zombies.Player;
+import me.selslack.codingame.zombies.mcts.Waypoint;
 
-import java.io.*;
-import java.util.Scanner;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class GameServer {
-    static public GameState[] cases = new GameState[2];
+    static final private ExecutorService executor = Executors.newFixedThreadPool(2);
+    static final public GameState[] cases = new GameState[3];
 
     static {
         // Case 1: Simple
@@ -24,80 +29,62 @@ public class GameServer {
             .addZombie(0, 3100, 7000)
             .addZombie(1, 11500, 7100)
             .state;
+
+        // Case 4: CG
+        cases[2] = new GameStateBuilder(7500, 7000)
+            .addHuman(0, 5000, 3000)
+            .addHuman(1, 6000, 8000)
+            .addZombie(0, 2000, 2000)
+            .addZombie(1, 2000, 3000)
+            .addZombie(2, 2000, 4000)
+            .addZombie(3, 3000, 1000)
+            .addZombie(4, 3000, 5000)
+            .addZombie(5, 4000, 1000)
+            .addZombie(6, 4000, 5000)
+            .addZombie(7, 5000, 1000)
+            .addZombie(8, 5000, 5000)
+            .addZombie(9, 6000, 1000)
+            .addZombie(10, 6000, 5000)
+            .addZombie(11, 9000, 1000)
+            .addZombie(12, 9000, 2000)
+            .addZombie(13, 9000, 3000)
+            .addZombie(14, 9000, 4000)
+            .addZombie(15, 9000, 5000)
+            .state;
     }
 
-    final private PipedOutputStream out;
-    final private PipedInputStream in;
-
-    final private PrintStream writer;
-    final private Scanner reader;
+    final private GameServerCommunicator communicator;
 
     final private GameState state;
-    final private Player player;
+    final private Runnable player;
 
     public GameServer(GameState start) {
         this.state = start;
-        this.out = new PipedOutputStream();
-        this.in = new PipedInputStream();
-        this.writer = new PrintStream(this.out);
-        this.reader = new Scanner(this.in);
-
-        try {
-            this.player = new Player(
-                new PipedInputStream(this.out),
-                new PipedOutputStream(this.in)
-            );
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        this.communicator = new GameServerCommunicator();
+        this.player = () -> {
+            new Player(communicator).run();
+        };
     }
 
     public int run() {
-        while (!state.isTerminal()) {
-            // Cleanup
-            state.getHumans().removeIf(v -> !v.isAlive);
-            state.getZombies().removeIf(v -> !v.isAlive);
+        Future<?> future = executor.submit(player);
 
-            // Ash
-            writer.print(state.getAsh().x);
-            writer.print(" ");
-            writer.print(state.getAsh().y);
-            writer.println();
+        try {
+            while (!state.isTerminal()) {
+                Optional<Waypoint> result = communicator.sendState(state).readCommand(130, TimeUnit.MILLISECONDS);
 
-            // Humans
-            writer.println(state.getHumans().size());
-
-            for (Human human : state.getHumans()) {
-                writer.print(human.id);
-                writer.print(" ");
-                writer.print(human.x);
-                writer.print(" ");
-                writer.print(human.y);
-                writer.println();
+                if (result.isPresent()) {
+                    Game.process(state, result.get().x, result.get().y);
+                }
+                else {
+                    throw new InterruptedException("Client didn't provide response in time");
+                }
             }
 
-            // Zombies
-            writer.println(state.getZombies().size());
-
-            for (Human zombie : state.getHumans()) {
-                writer.print(zombie.id);
-                writer.print(" ");
-                writer.print(zombie.x);
-                writer.print(" ");
-                writer.print(zombie.y);
-                writer.print(" ");
-                writer.print(0);
-                writer.print(" ");
-                writer.print(0);
-                writer.println();
-            }
-
-            // Read the response
-            reader.nextInt();
-            reader.nextInt();
+            return state.score;
         }
-
-        return state.score;
+        catch (InterruptedException e) {
+            return 0;
+        }
     }
 }
