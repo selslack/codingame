@@ -6,21 +6,25 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.ModifierSet;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import org.apache.commons.io.FileUtils;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class Compiler {
     private final String _fqcn;
     private final List<File> _paths;
 
-    private final Map<String, ClassOrInterfaceDeclaration> _classes = new HashMap<>();
+    private final Map<String, TypeDeclaration> _classes = new HashMap<>();
     private final Map<String, List<ImportDeclaration>> _deps = new HashMap<>();
 
-    private final Map<String, ClassOrInterfaceDeclaration> _compiledClasses = new HashMap<>();
+    private final Map<String, TypeDeclaration> _compiledClasses = new HashMap<>();
     private final Set<ImportDeclaration> _compiledImports = new HashSet<>();
 
     Compiler(String fqcn, List<File> paths) {
@@ -47,26 +51,29 @@ public class Compiler {
         }
 
         try {
+            String mainClass;
+
             if (_classes.containsKey(_fqcn)) {
-                _addClass(_fqcn);
+                mainClass = _fqcn;
             }
             else {
-                _addClass(
-                    _classes
-                        .entrySet()
-                        .stream()
-                        .filter(v -> v.getKey().endsWith(_fqcn))
-                        .findFirst()
-                        .orElseThrow(() -> new ClassNotFoundException(_fqcn))
-                        .getKey()
-                );
+                mainClass = _classes
+                    .entrySet()
+                    .stream()
+                    .filter(v -> v.getKey().endsWith(_fqcn))
+                    .findFirst()
+                    .orElseThrow(() -> new ClassNotFoundException(_fqcn))
+                    .getKey();
             }
+
+            _addLocalPackageDependency(mainClass);
+            _addClass(mainClass);
         }
         catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
 
-        _compiledClasses.forEach((k, v) -> v.setModifiers(v.getModifiers() ^ ModifierSet.PUBLIC));
+        _compiledClasses.forEach((k, v) -> v.setModifiers(v.getModifiers() & ~ModifierSet.PUBLIC));
 
         result.setTypes(new ArrayList<>(_compiledClasses.values()));
         result.setImports(new ArrayList<>(_compiledImports));
@@ -74,31 +81,50 @@ public class Compiler {
         return result.toStringWithoutComments();
     }
 
+    private void _addLocalPackageDependency(String clazz) {
+        String pkg = Pattern.compile("\\.[^\\.]*$").matcher(clazz).replaceAll("");
+        ImportDeclaration imp = new ImportDeclaration(new NameExpr(pkg), false, true);
+
+        if (_deps.containsKey(clazz)) {
+            _deps.get(clazz).add(imp);
+        }
+        else {
+            _deps.put(clazz, Collections.singletonList(imp));
+        }
+    }
+
     private boolean _addClass(String clazz) throws ClassNotFoundException {
         if (!_classes.containsKey(clazz)) {
             throw new ClassNotFoundException(clazz);
         }
 
-        ClassOrInterfaceDeclaration source = _classes.get(clazz);
+        TypeDeclaration source = _classes.get(clazz);
 
         if (_compiledClasses.containsKey(source.getName())) {
-            throw new RuntimeException("Duplicate class name: " + clazz);
+            if (_compiledClasses.get(source.getName()) == source) {
+                return true;
+            }
+            else {
+                throw new RuntimeException("Duplicate class name: " + clazz);
+            }
         }
 
         _compiledClasses.put(source.getName(), source);
 
         for (ImportDeclaration imp : _deps.get(clazz)) {
             if (imp.isStatic()) {
-                throw new RuntimeException("Can not compile static imports");
+                throw new RuntimeException("Can not compile static imports: " + imp);
             }
 
             if (imp.isAsterisk()) {
+                Pattern check = Pattern.compile(
+                    "^" + Pattern.quote(imp.getName().toString() + ".") + "[^\\.]+"
+                );
+
                 boolean found = false;
 
-                for (Map.Entry<String, ClassOrInterfaceDeclaration> clz : _classes.entrySet()) {
-                    if (clz.getKey().startsWith(imp.getName().toString())
-                        && !clz.getKey().substring(clz.getKey().length()).contains("."))
-                    {
+                for (Map.Entry<String, TypeDeclaration> clz : _classes.entrySet()) {
+                    if (check.matcher(clz.getKey()).matches()) {
                         found = _addClass(clz.getKey());
                     }
                 }
@@ -154,6 +180,18 @@ public class Compiler {
             }
 
             if (ModifierSet.isPublic(n.getModifiers())) {
+                _classes.putIfAbsent(_package + "." + n.getName(), n);
+                _deps.putIfAbsent(_package + "." + n.getName(), _imports);
+            }
+        }
+
+        @Override
+        public void visit(EnumDeclaration n, Object arg) {
+            if (_package == null) {
+                return;
+            }
+
+            if (ModifierSet.isPublic(n.getModifiers()) || ModifierSet.isProtected(n.getModifiers()) || ModifierSet.hasPackageLevelAccess(n.getModifiers())) {
                 _classes.putIfAbsent(_package + "." + n.getName(), n);
                 _deps.putIfAbsent(_package + "." + n.getName(), _imports);
             }
