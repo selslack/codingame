@@ -60,7 +60,7 @@ public class CodinGameCommunicator implements Communicator {
 
             // Zombies
             for (int i = reader.nextInt(); i > 0; i--) {
-                state.getHumans().add(
+                state.getZombies().add(
                     new Human(
                         Human.Type.ZOMBIE,
                         reader.nextInt(),
