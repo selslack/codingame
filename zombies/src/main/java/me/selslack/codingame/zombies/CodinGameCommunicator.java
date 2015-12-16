@@ -1,9 +1,18 @@
 package me.selslack.codingame.zombies;
 
+import java.io.InputStream;
 import java.util.Scanner;
 
 public class CodinGameCommunicator implements Communicator {
-    final private Scanner reader = new Scanner(System.in);
+    final private Scanner reader;
+
+    public CodinGameCommunicator(InputStream stream) {
+        this.reader = new Scanner(stream);
+    }
+
+    public CodinGameCommunicator(Scanner scanner) {
+        this.reader = scanner;
+    }
 
     @Override
     public void readState(GameState state, boolean toDevNull) {

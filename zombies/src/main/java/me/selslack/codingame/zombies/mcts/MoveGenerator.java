@@ -5,6 +5,10 @@ import me.selslack.codingame.zombies.Waypoint;
 
 import java.util.List;
 
-public interface WaypointGenerator {
+public interface MoveGenerator {
+    default Strategy getStrategy() {
+        return Strategy.RANDOM;
+    }
+
     List<Waypoint> generate(final GameState state);
 }
