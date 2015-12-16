@@ -19,4 +19,12 @@ class GameStateBuilderTest extends Specification {
         "01-simple" | 0    | 0    | 1      | 1
         "05-3_vs_3" | 7500 | 2000 | 2      | 3
     }
+
+    def "test build invalid id"() {
+        when:
+        GameStateBuilder.build("invalid")
+
+        then:
+        thrown(RuntimeException)
+    }
 }
