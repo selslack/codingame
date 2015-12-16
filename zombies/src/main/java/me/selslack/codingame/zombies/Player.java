@@ -14,7 +14,7 @@ public class Player {
     public Player(GameState state, Communicator communicator, Config config) {
         this.state = state;
         this.communicator = communicator;
-        this.solver = new Solver(state, config);
+        this.solver = new Solver(state);
     }
 
     public void run() {
@@ -27,12 +27,12 @@ public class Player {
     public Waypoint process() {
         Waypoint p = solver.run();
 
-        Game.process(state, p.x, p.y);
+        Game.process(state, p);
 
         return p;
     }
 
     public static void main(String args[]) {
-        new Player(new CodinGameCommunicator(), new Config()).run();
+        new Player(new CodinGameCommunicator(System.in), new Config()).run();
     }
 }

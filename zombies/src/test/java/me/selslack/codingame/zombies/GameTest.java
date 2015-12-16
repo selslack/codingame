@@ -1,9 +1,13 @@
 package me.selslack.codingame.zombies;
 
+import me.selslack.codingame.zombies.server.GameStateBuilder;
+import org.junit.Test;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.*;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -35,12 +39,24 @@ public class GameTest {
     }
 
     @Benchmark
-    public void benchmarkProcess(GameStateState state) {
-        Game.process(state.state, 2000, 1000);
+    public GameState benchmarkProcess(GameStateState state) {
+        return Game.process(state.state, new Waypoint(2000, 3000));
     }
 
-    @Benchmark
+//    @Benchmark
     public void benchmarkHumanMovement(GameStateState state) {
         Game.humanMovement(state.state.getAsh(), state.state.getZombies().get(0));
+    }
+
+//    @Test
+    public void testHumanMovement() {
+        Human subject1 = new Human(Human.Type.ZOMBIE, 7, 5000, 1000);
+        Human subject2 = new Human(Human.Type.ZOMBIE, 7, 5000, 1000);
+
+        Game.humanMovement(subject1, 4000, 1000);
+//        Game.humanMovementSqrt(subject2, 4000, 1000);
+
+        assertEquals(subject1.x, subject2.x);
+        assertEquals(subject1.y, subject2.y);
     }
 }

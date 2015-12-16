@@ -1,27 +1,29 @@
 package me.selslack.codingame.zombies.server;
 
+import me.selslack.codingame.zombies.CodinGameCommunicator;
 import me.selslack.codingame.zombies.GameState;
-import me.selslack.codingame.zombies.Human;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Optional;
 
 public class GameStateBuilder {
-    public GameState state = new GameState();
+    static public GameState build(String id) {
+        GameState result = new GameState();
 
-    public GameStateBuilder(int x, int y) {
-        state.getAsh().x = x;
-        state.getAsh().y = y;
-    }
+        InputStream input = Optional.ofNullable(GameStateBuilder.class.getResourceAsStream(String.format("%s.cgstate", id)))
+            .orElseThrow(() -> new RuntimeException(String.format("No saved state found for id: %s", id)));
 
-    public GameStateBuilder addHuman(int id, int x, int y) {
-        state.getHumans()
-            .add(id, new Human(Human.Type.HUMAN, id, x, y));
+        // Deserialize input string to the supplied state
+        new CodinGameCommunicator(input).readState(result, false);
 
-        return this;
-    }
+        try {
+            input.close();
+        }
+        catch (IOException ignored) {
+            // Nothing to do here
+        }
 
-    public GameStateBuilder addZombie(int id, int x, int y) {
-        state.getZombies()
-            .add(id, new Human(Human.Type.ZOMBIE, id, x, y));
-
-        return this;
+        return result;
     }
 }

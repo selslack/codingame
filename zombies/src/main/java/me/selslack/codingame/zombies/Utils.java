@@ -1,17 +1,52 @@
 package me.selslack.codingame.zombies;
 
 public class Utils {
-    static public int distance(int x1, int y1, int x2, int y2) {
-        return (int) Math.ceil(
-            Math.sqrt(Math.pow(x1 - x2, 2.0) + Math.pow(y1 - y2, 2.0))
-        );
+    static final public double EPSILON = 1E-9;
+
+    /**
+     * Returns the distance between points (x1, y1) and (x2, y2).
+     */
+    static public double distance(int x1, int y1, int x2, int y2) {
+        return Math.sqrt(Math.pow(x1 - x2, 2.0) + Math.pow(y1 - y2, 2.0));
     }
 
-    static public int distance(Human h1, Human h2) {
-        return distance(h1.x, h1.y, h2.x, h2.y);
+    /**
+     * Finds an intersection of a circle of radius {@code d} with the center at ({@code x1}, {@code y1})
+     * and a ray starting from ({@code x1}, {@code y1}) and going through ({@code x2}, {@code y2}).
+     *
+     * Trigonometric implementation.
+     */
+    static public double[] projectionPrecise(int x1, int y1, int x2, int y2, int d) {
+        double angle = Math.atan2(y2 - y1, x2 - x1);
+
+        return new double[] {
+            d * Math.cos(angle),
+            d * Math.sin(angle)
+        };
     }
 
-    static public int distance(Waypoint w1, Waypoint w2) {
-        return distance(w1.x, w1.y, w2.x, w2.y);
+    /**
+     * Finds an intersection of a circle of radius {@code d} with the center at ({@code x1}, {@code y1})
+     * and a ray starting from ({@code x1}, {@code y1}) and going through ({@code x2}, {@code y2}).
+     *
+     * Math implementation.
+     */
+    static public double[] projectionFast(int x1, int y1, int x2, int y2, int d) {
+        if (x1 == x2) {
+            return new double[] { 0.0, (double) d };
+        }
+        else if (y1 == y2) {
+            return new double[] { (double) d, 0.0 };
+        }
+
+        int sign = x2 < x1 ? -1 : 1;
+
+        double slope = (double) (y2 - y1) / (double) (x2 - x1);
+        double result = sign * d / Math.sqrt(Math.pow(slope, 2.0) + 1);
+
+        return new double[] {
+            result,
+            slope * result
+        };
     }
 }

@@ -56,8 +56,8 @@ public class GameState implements Cloneable {
         }
 
         result.ash = this.ash.clone();
-        result.humans = this.humans.stream().filter(v -> v.isAlive).map(Human::clone).collect(Collectors.toCollection(LinkedList::new));
-        result.zombies = this.zombies.stream().filter(v -> v.isAlive).map(Human::clone).collect(Collectors.toCollection(LinkedList::new));
+        result.humans = this.humans.stream().map(Human::clone).collect(Collectors.toCollection(LinkedList::new));
+        result.zombies = this.zombies.stream().map(Human::clone).collect(Collectors.toCollection(LinkedList::new));
 
         return result;
     }

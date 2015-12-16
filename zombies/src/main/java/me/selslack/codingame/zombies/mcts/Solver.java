@@ -6,37 +6,35 @@ import me.selslack.codingame.zombies.Human;
 import me.selslack.codingame.zombies.Waypoint;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class Solver {
-    static final private Random rnd = new Random();
-
     private Node root;
-    final private Config config;
-    final private List<WaypointGenerator> generators;
 
-    public Solver(GameState state, Config config) {
-        this.generators = new LinkedList<>();
-        this.generators.add(new FlexibleWaypointGenerator(config.firstFlexCircleDistance, config.firstFlexCircleCount));
-//        this.generators.add(new FlexibleWaypointGenerator(config.secondFlexCircleDistance, config.secondFlexCircleCount));
-//        this.generators.add(new FlexibleWaypointGenerator(150, 3));
-//        this.generators.add(new HumansWaypointGenerator());
-//        this.generators.add(new ZombiesWaypointGenerator());
+    final private Random random = new Random();
+    final private SolverStatistics statistics;
+    final private List<MoveGenerator> generators;
 
-        this.root = new Node(null, state.clone(), getPossibleMoves(state, generators));
-        this.config = config;
+    public Solver(GameState initial) {
+        this(initial, Collections.emptyList());
+    }
 
+    public Solver(GameState initial, List<MoveGenerator> generators) {
+        this.root = new Node(null, initial.clone(), getAvailableMoves(initial, Strategy.RANDOM));
+        this.statistics = new SolverStatistics();
+        this.generators = generators;
     }
 
     public Waypoint run() {
-        long startTime = System.currentTimeMillis();
+        statistics.reset();
 
-        while (System.currentTimeMillis() - startTime < config.timeLimit) {
+        while (statistics.getRunningTime(TimeUnit.MILLISECONDS) < 95) {
             Node node = root;
 
             // Select
             while (node.undiscovered.isEmpty() && !node.children.isEmpty()) {
                 node = node.children.stream()
-                    .sorted(Comparator.comparingDouble((Node v) -> v.score / v.visits + Math.sqrt(2 * Math.log(v.parent.visits) / v.visits)).reversed())
+                    .sorted(Comparator.comparingDouble((Node v) -> Solver.nodeValue(v)).reversed())
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("There are no valid children"));
             }
@@ -49,19 +47,16 @@ public class Solver {
                 );
 
                 if (node.undiscovered.isEmpty()) {
-                    node.undiscovered = Collections.EMPTY_LIST;
-
-                    if (node.parent != null && node.parent.parent != null) {
-                        node.state = null;
-                    }
+                    node.undiscovered = Collections.emptyList();
+                    node.state = null;
                 }
 
-                node = new Node(node, newState, getPossibleMoves(newState, generators));
+                node = new Node(node, newState, getAvailableMoves(newState, Strategy.RANDOM));
             }
 
             int playoutScore = node.state.isTerminal()
-                ? node.score
-                : playout(node.state.clone(), generators, config.playoutDepth);
+                ? node.state.score
+                : playout(node.state.clone());
 
             // Backpropagate
             while (node != null) {
@@ -70,6 +65,8 @@ public class Solver {
 
                 node = node.parent;
             }
+
+            statistics.done();
         }
 
         root = root.children.stream()
@@ -82,36 +79,63 @@ public class Solver {
         return new Waypoint(root.ash);
     }
 
-    static public int playout(GameState state, List<WaypointGenerator> generators, int plyLimit) {
-        for (int i = 0; i < plyLimit; i++) {
-            if (state.isTerminal()) {
-                break;
-            }
+    static public double nodeValue(Node node) {
+        double uctBias = 0.7 * Math.sqrt(Math.log(node.parent.visits) / node.visits);
 
-            List<Waypoint> actions = getPossibleMoves(state, generators);
-            Waypoint action = actions.get(rnd.nextInt(actions.size()));
-
-            Game.process(state, action);
-        }
-
-        return state.score;
+        return uctBias;
     }
 
-    static public List<Waypoint> getPossibleMoves(GameState state, List<WaypointGenerator> generators) {
-        if (state.isTerminal() || generators.isEmpty()) {
-            return Collections.EMPTY_LIST;
+    public List<Waypoint> getAvailableMoves(GameState state, Strategy strategy) {
+        List<Strategy> strategies = Arrays.asList(strategy.getNext());
+        List<Waypoint> result = new LinkedList<>();
+
+        if (state.isTerminal()) {
+            return Collections.emptyList();
         }
 
-        ArrayList<Waypoint> result = new ArrayList<>(32);
+        generators
+            .stream()
+            .filter(v -> strategies.contains(v.getStrategy()))
+            .flatMap(v -> v.generate(state).stream())
+            .filter(v -> v.x >= 0 && v.x < 16000 && v.y >= 0 && v.y < 9000)
+            .forEach(result::add);
 
-        for (WaypointGenerator generator : generators) {
-            result.addAll(generator.generate(state));
+        if (result.isEmpty()) {
+            return Collections.emptyList();
         }
 
         return result;
     }
 
-    static private class Node {
+    public Optional<Waypoint> getRandomMove(GameState state, Strategy strategy) {
+        List<Waypoint> moves = getAvailableMoves(state, strategy);
+        int count = moves.size();
+
+        if (count < 1) {
+            return Optional.empty();
+        }
+        else {
+            return Optional.of(
+                moves.get(random.nextInt(count))
+            );
+        }
+    }
+
+    public int playout(GameState state) {
+        GameState start = state.clone();
+
+        for (int i = 0; !start.isTerminal(); i++) {
+            Game.process(start, getRandomMove(start, i > 2 ? Strategy.EXTINGUISH : Strategy.RANDOM).get());
+        }
+
+        return start.score;
+    }
+
+    public SolverStatistics getStatistics() {
+        return statistics;
+    }
+
+    static public class Node {
         public int score = 0;
         public int visits = 0;
         public Node parent;
@@ -121,10 +145,11 @@ public class Solver {
         final public List<Node> children;
         final public Human ash;
 
-        private Node(Node parent, GameState state, List<Waypoint> undiscovered) {
+        protected Node(Node parent, GameState state, List<Waypoint> undiscovered) {
             this.parent = parent;
             this.state = state;
             this.undiscovered = undiscovered;
+
             this.children = new LinkedList<>();
             this.ash = state.getAsh();
 
@@ -136,6 +161,39 @@ public class Solver {
         @Override
         public String toString() {
             return "Node{score=" + score + ", visits=" + visits + ", point=" + new Waypoint(ash) + "}";
+        }
+    }
+
+    static public class SolverStatistics {
+        Optional<LongSummaryStatistics> statistics = Optional.empty();
+        long startTime = 0L;
+        long prevInvocationTime = 0L;
+
+        protected void reset() {
+            statistics = Optional.of(new LongSummaryStatistics());
+            startTime = prevInvocationTime = System.nanoTime();
+        }
+
+        protected void done() {
+            statistics.get().accept(
+                System.nanoTime() - prevInvocationTime
+            );
+
+            prevInvocationTime = System.nanoTime();
+        }
+
+        protected long getRunningTime(TimeUnit timeUnit) {
+            return timeUnit.convert(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
+        }
+
+        @Override
+        public String toString() {
+            if (statistics.isPresent()) {
+                return "SolverStatistics{count=" + statistics.get().getCount() + ", average=" + String.format("%.5g", statistics.get().getAverage() / 1E6d) + "ms}";
+            }
+            else {
+                return "SolverStatistics{NO DATA}";
+            }
         }
     }
 }
