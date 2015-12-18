@@ -32,14 +32,14 @@ public class Utils {
      * Math implementation.
      */
     static public double[] projectionFast(int x1, int y1, int x2, int y2, int d) {
+        int sign = x2 < x1 || x1 == x2 && y2 < y1 ? -1 : 1;
+
         if (x1 == x2) {
-            return new double[] { 0.0, (double) d };
+            return new double[] { 0.0, (double) d * sign };
         }
         else if (y1 == y2) {
-            return new double[] { (double) d, 0.0 };
+            return new double[] { (double) d * sign, 0.0 };
         }
-
-        int sign = x2 < x1 ? -1 : 1;
 
         double slope = (double) (y2 - y1) / (double) (x2 - x1);
         double result = sign * d / Math.sqrt(Math.pow(slope, 2.0) + 1);
