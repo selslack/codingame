@@ -1,4 +1,4 @@
-package me.selslack.codingame.zombies;
+package me.selslack.codingame.zombies.benchmark;
 
 import org.openjdk.jmh.annotations.*;
 

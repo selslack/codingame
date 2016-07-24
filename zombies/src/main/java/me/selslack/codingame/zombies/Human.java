@@ -3,7 +3,7 @@ package me.selslack.codingame.zombies;
 import java.util.function.Supplier;
 
 public class Human implements Cloneable {
-    final public Type type;
+    final public HumanType type;
     final public int id;
 
     public int x;
@@ -11,7 +11,7 @@ public class Human implements Cloneable {
     public boolean isAlive;
     public Supplier<Human> future;
 
-    public Human(Type type, int id, int x, int y) {
+    public Human(HumanType type, int id, int x, int y) {
         this.type = type;
         this.id = id;
         this.x = x;
@@ -33,33 +33,5 @@ public class Human implements Cloneable {
     @Override
     public String toString() {
         return "Human{type=" + type + ", id=" + id + ", x=" + x + ", y=" + y + ", isAlive=" + isAlive + "}";
-    }
-
-    public enum Type {
-        ASH("Ash", 1000),
-        ZOMBIE("Zombie", 400),
-        HUMAN("Human", 0);
-
-        private final String type;
-        private final int speed;
-
-        Type(String type, int speed) {
-            this.type = type;
-            this.speed = speed;
-        }
-
-        public int getSpeed() {
-            return speed;
-        }
-
-        @Override
-        public String toString() {
-            return "HumanType{type='" + type + "', speed=" + speed + "}";
-        }
-    }
-
-    @FunctionalInterface
-    interface FutureSupplier extends Supplier<Human> {
-
     }
 }

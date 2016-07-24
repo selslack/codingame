@@ -1,7 +1,11 @@
 package me.selslack.codingame.zombies;
 
-import me.selslack.codingame.zombies.mcts.*;
+import me.selslack.codingame.zombies.mcts.Config;
+import me.selslack.codingame.zombies.mcts.Solver;
 
+/**
+ * @solution
+ */
 public class Player {
     final private Communicator communicator;
     final private GameState state;

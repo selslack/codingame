@@ -1,5 +1,8 @@
-package me.selslack.codingame.zombies;
+package me.selslack.codingame.zombies.benchmark;
 
+import me.selslack.codingame.zombies.Human;
+import me.selslack.codingame.zombies.HumanType;
+import me.selslack.codingame.zombies.Waypoint;
 import org.openjdk.jmh.annotations.*;
 
 public class GameHumanMovementBenchmark extends AbstractBenchmark {
@@ -10,7 +13,7 @@ public class GameHumanMovementBenchmark extends AbstractBenchmark {
 
         @Setup(Level.Iteration)
         public void setUpIteration() {
-            ash = new Human(Human.Type.ASH, 0, rnd.nextInt(16000), rnd.nextInt(9000));
+            ash = new Human(HumanType.ASH, 0, rnd.nextInt(16000), rnd.nextInt(9000));
         }
 
         @Setup(Level.Invocation)
@@ -21,6 +24,6 @@ public class GameHumanMovementBenchmark extends AbstractBenchmark {
 
     @Benchmark
     public void benchmarkHumanMovement(MovementState state) {
-        Game.humanMovement(state.ash, state.to);
+//        Game.humanMovement(state.ash, state.to);
     }
 }

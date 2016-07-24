@@ -1,0 +1,32 @@
+plugins {
+    id 'application'
+    id 'groovy'
+    id 'java'
+    id 'idea'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.14'
+    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
+}
+
+group 'me.selslack.codingame.zombies'
+version '1.1'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+
+    maven { url "http://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
+dependencies {
+    compile "org.bitbucket.fwilhelm:org.jenetics:3.5.1"
+    compile "org.openjdk.jmh:jmh-core:1.12"
+    compile "org.openjdk.jmh:jmh-generator-reflection:1.12"
+    testCompile "org.codehaus.groovy:groovy-all:2.4.7"
+    testCompile "org.spockframework:spock-core:1.1-groovy-2.4-rc-1"
+}

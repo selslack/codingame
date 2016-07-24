@@ -2,14 +2,19 @@ package me.selslack.codingame.zombies.mcts;
 
 import me.selslack.codingame.zombies.Game;
 import me.selslack.codingame.zombies.GameState;
-import me.selslack.codingame.zombies.Human;
 import me.selslack.codingame.zombies.Waypoint;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class Solver {
-    private Node root;
+    private SolverNode root;
 
     final private Random random = new Random();
     final private SolverStatistics statistics;
@@ -20,7 +25,7 @@ public class Solver {
     }
 
     public Solver(GameState initial, List<MoveGenerator> generators) {
-        this.root = new Node(null, initial.clone(), getAvailableMoves(initial, Strategy.RANDOM));
+        this.root = new SolverNode(null, initial.clone(), getAvailableMoves(initial, Strategy.RANDOM));
         this.statistics = new SolverStatistics();
         this.generators = generators;
     }
@@ -29,12 +34,12 @@ public class Solver {
         statistics.reset();
 
         while (statistics.getRunningTime(TimeUnit.MILLISECONDS) < 95) {
-            Node node = root;
+            SolverNode node = root;
 
             // Select
             while (node.undiscovered.isEmpty() && !node.children.isEmpty()) {
                 node = node.children.stream()
-                    .sorted(Comparator.comparingDouble((Node v) -> Solver.nodeValue(v)).reversed())
+                    .sorted(Comparator.comparingDouble((SolverNode v) -> Solver.nodeValue(v)).reversed())
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("There are no valid children"));
             }
@@ -51,7 +56,7 @@ public class Solver {
                     node.state = null;
                 }
 
-                node = new Node(node, newState, getAvailableMoves(newState, Strategy.RANDOM));
+                node = new SolverNode(node, newState, getAvailableMoves(newState, Strategy.RANDOM));
             }
 
             int playoutScore = node.state.isTerminal()
@@ -70,7 +75,7 @@ public class Solver {
         }
 
         root = root.children.stream()
-            .sorted(Comparator.comparingInt((Node v) -> -v.score))
+            .sorted(Comparator.comparingInt((SolverNode v) -> -v.score))
             .findFirst()
             .orElse(root);
 
@@ -79,7 +84,7 @@ public class Solver {
         return new Waypoint(root.ash);
     }
 
-    static public double nodeValue(Node node) {
+    static public double nodeValue(SolverNode node) {
         double uctBias = 0.7 * Math.sqrt(Math.log(node.parent.visits) / node.visits);
 
         return uctBias;
@@ -133,67 +138,5 @@ public class Solver {
 
     public SolverStatistics getStatistics() {
         return statistics;
-    }
-
-    static public class Node {
-        public int score = 0;
-        public int visits = 0;
-        public Node parent;
-        public GameState state;
-        public List<Waypoint> undiscovered;
-
-        final public List<Node> children;
-        final public Human ash;
-
-        protected Node(Node parent, GameState state, List<Waypoint> undiscovered) {
-            this.parent = parent;
-            this.state = state;
-            this.undiscovered = undiscovered;
-
-            this.children = new LinkedList<>();
-            this.ash = state.getAsh();
-
-            if (parent != null) {
-                parent.children.add(this);
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "Node{score=" + score + ", visits=" + visits + ", point=" + new Waypoint(ash) + "}";
-        }
-    }
-
-    static public class SolverStatistics {
-        Optional<LongSummaryStatistics> statistics = Optional.empty();
-        long startTime = 0L;
-        long prevInvocationTime = 0L;
-
-        protected void reset() {
-            statistics = Optional.of(new LongSummaryStatistics());
-            startTime = prevInvocationTime = System.nanoTime();
-        }
-
-        protected void done() {
-            statistics.get().accept(
-                System.nanoTime() - prevInvocationTime
-            );
-
-            prevInvocationTime = System.nanoTime();
-        }
-
-        protected long getRunningTime(TimeUnit timeUnit) {
-            return timeUnit.convert(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
-        }
-
-        @Override
-        public String toString() {
-            if (statistics.isPresent()) {
-                return "SolverStatistics{count=" + statistics.get().getCount() + ", average=" + String.format("%.5g", statistics.get().getAverage() / 1E6d) + "ms}";
-            }
-            else {
-                return "SolverStatistics{NO DATA}";
-            }
-        }
     }
 }

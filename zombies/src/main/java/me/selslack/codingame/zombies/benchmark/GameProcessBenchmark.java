@@ -1,5 +1,6 @@
-package me.selslack.codingame.zombies;
+package me.selslack.codingame.zombies.benchmark;
 
+import me.selslack.codingame.zombies.*;
 import org.openjdk.jmh.annotations.*;
 
 public class GameProcessBenchmark extends AbstractBenchmark {
@@ -15,13 +16,13 @@ public class GameProcessBenchmark extends AbstractBenchmark {
             state.getZombies().clear();
 
             for (int i = 0; i < 26; i++) {
-                state.getZombies().add(new Human(Human.Type.ZOMBIE, i, rnd.nextInt(10000) + 5000, rnd.nextInt(4000) + 5000));
+                state.getZombies().add(new Human(HumanType.ZOMBIE, i, rnd.nextInt(10000) + 5000, rnd.nextInt(4000) + 5000));
             }
 
             state.getHumans().clear();
-            state.getHumans().add(new Human(Human.Type.HUMAN, 0, rnd.nextInt(5000), rnd.nextInt(3000)));
-            state.getHumans().add(new Human(Human.Type.HUMAN, 1, rnd.nextInt(5000), rnd.nextInt(3000)));
-            state.getHumans().add(new Human(Human.Type.HUMAN, 2, rnd.nextInt(5000), rnd.nextInt(3000)));
+            state.getHumans().add(new Human(HumanType.HUMAN, 0, rnd.nextInt(5000), rnd.nextInt(3000)));
+            state.getHumans().add(new Human(HumanType.HUMAN, 1, rnd.nextInt(5000), rnd.nextInt(3000)));
+            state.getHumans().add(new Human(HumanType.HUMAN, 2, rnd.nextInt(5000), rnd.nextInt(3000)));
         }
     }
 

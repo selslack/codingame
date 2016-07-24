@@ -1,5 +1,6 @@
-package me.selslack.codingame.zombies;
+package me.selslack.codingame.zombies.benchmark;
 
+import me.selslack.codingame.zombies.GameState;
 import me.selslack.codingame.zombies.mcts.FlexibleMoveGenerator;
 import me.selslack.codingame.zombies.mcts.MoveGenerator;
 import me.selslack.codingame.zombies.mcts.Solver;

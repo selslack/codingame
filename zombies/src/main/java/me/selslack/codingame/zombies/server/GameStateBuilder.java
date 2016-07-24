@@ -3,6 +3,7 @@ package me.selslack.codingame.zombies.server;
 import me.selslack.codingame.zombies.CodinGameCommunicator;
 import me.selslack.codingame.zombies.GameState;
 import me.selslack.codingame.zombies.Human;
+import me.selslack.codingame.zombies.HumanType;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,7 +50,7 @@ public class GameStateBuilder {
         for (int i = scanner.nextInt(); i > 0; i--) {
             to.getHumans().add(
                 new Human(
-                    Human.Type.HUMAN,
+                    HumanType.HUMAN,
                     i,
                     scanner.nextInt(),
                     scanner.nextInt()
@@ -61,7 +62,7 @@ public class GameStateBuilder {
         for (int i = scanner.nextInt(); i > 0; i--) {
             to.getZombies().add(
                 new Human(
-                    Human.Type.ZOMBIE,
+                    HumanType.ZOMBIE,
                     i,
                     scanner.nextInt(),
                     scanner.nextInt()

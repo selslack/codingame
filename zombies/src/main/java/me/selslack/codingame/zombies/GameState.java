@@ -13,7 +13,7 @@ public class GameState implements Cloneable {
     public int score;
 
     public GameState() {
-        this.ash = new Human(Human.Type.ASH, 0, 0, 0);
+        this.ash = new Human(HumanType.ASH, 0, 0, 0);
         this.humans = new LinkedList<>();
         this.zombies = new LinkedList<>();
         this.tick = 0;

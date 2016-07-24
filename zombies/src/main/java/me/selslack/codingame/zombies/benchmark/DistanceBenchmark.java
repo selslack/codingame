@@ -1,5 +1,7 @@
-package me.selslack.codingame.zombies;
+package me.selslack.codingame.zombies.benchmark;
 
+import me.selslack.codingame.zombies.Utils;
+import me.selslack.codingame.zombies.Waypoint;
 import org.openjdk.jmh.annotations.*;
 
 public class DistanceBenchmark extends AbstractBenchmark {

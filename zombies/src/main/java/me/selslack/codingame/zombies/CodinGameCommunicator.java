@@ -50,7 +50,7 @@ public class CodinGameCommunicator implements Communicator {
             for (int i = reader.nextInt(); i > 0; i--) {
                 state.getHumans().add(
                     new Human(
-                        Human.Type.HUMAN,
+                        HumanType.HUMAN,
                         reader.nextInt(),
                         reader.nextInt(),
                         reader.nextInt()
@@ -62,7 +62,7 @@ public class CodinGameCommunicator implements Communicator {
             for (int i = reader.nextInt(); i > 0; i--) {
                 state.getZombies().add(
                     new Human(
-                        Human.Type.ZOMBIE,
+                        HumanType.ZOMBIE,
                         reader.nextInt(),
                         reader.nextInt(),
                         reader.nextInt()
