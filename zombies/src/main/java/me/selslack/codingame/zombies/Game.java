@@ -1,10 +1,10 @@
 package me.selslack.codingame.zombies;
 
-import java.util.Comparator;
 import java.util.List;
+import java.util.ListIterator;
 
 public class Game {
-    static final public int KILL_DISTANCE = 2000;
+    static final public int KILL_DISTANCE_SQ = 2000 * 2000;
     static final public int[] KILL_MULTIPLIER = new int[] {
         1, 2, 3, 5, 8,
         13, 21, 34, 55, 89,
@@ -19,37 +19,43 @@ public class Game {
     }
 
     static public GameState process(GameState state, int x, int y) {
-        int humansAlive = state.getHumans().size();
+        final int humansAlive = state.getHumans().size();
+        final ListIterator<Human> zombies = state.getZombies().listIterator();
+        final ListIterator<Human> humans = state.getHumans().listIterator();
+
+        // 0) Combo counter
         int kills = 0;
 
         // 1) Zombie's move towards their targets
-        state.getZombies()
-            .forEach(v -> humanMovement(v, calculateYummyBrains(v, state.getAsh(), state.getHumans())));
+        for (Human zombie : state.getZombies()) {
+            humanMovement(zombie, calculateYummyBrains(zombie, state.getAsh(), state.getHumans()));
+        }
 
         // 2) Ash moves to the given position
         humanMovement(state.getAsh(), x, y);
 
+        // 3) Ash kills zombie in his range
+        while (zombies.hasNext()) {
+            final Human zombie = zombies.next();
 
-        for (Human zombie : state.getZombies()) {
-            // 3) Ash kills zombie in his range
-            if (zombie.isAlive && distance(state.getAsh(), zombie) <= KILL_DISTANCE) {
-                zombie.isAlive = false;
+            if (distanceSq(state.getAsh(), zombie) <= KILL_DISTANCE_SQ) {
+                // Remove dead zombie from the state
+                zombies.remove();
+
                 state.score += humansAlive * humansAlive * 10 * KILL_MULTIPLIER[kills++];
-            }
-
-            // 4) Zombie eat humans
-            if (zombie.isAlive) {
-                // noinspection Convert2streamapi
-                for (Human human : state.getHumans()) {
-                    if (human.x == zombie.x && human.y == zombie.y) {
-                        human.isAlive = false;
-                    }
-                }
             }
         }
 
-        state.getHumans().removeIf(v -> !v.isAlive);
-        state.getZombies().removeIf(v -> !v.isAlive);
+        // 4) Zombie eat humans
+        while (humans.hasNext()) {
+            final Human human = humans.next();
+
+            for (Human zombie : state.getZombies()) {
+                if (human.x == zombie.x && human.y == zombie.y) {
+                    humans.remove();
+                }
+            }
+        }
 
         if (state.isLose()) {
             state.score = 0;
@@ -60,17 +66,8 @@ public class Game {
         return state;
     }
 
-    static public int distance(int x1, int y1, int x2, int y2) {
-        return (int) Math.ceil(Utils.distance(x1, y1, x2, y2));
-    }
-
-    static public int distance(Human human, Human target) {
-        return distance(human.x, human.y, target.x, target.y);
-    }
-
-
-    static protected void humanMovement(Human object, Waypoint target) {
-        humanMovement(object, target.x, target.y);
+    static protected int distanceSq(Human human, Human target) {
+        return Utils.distanceSq(human.x, human.y, target.x, target.y);
     }
 
     static protected void humanMovement(Human object, Human target) {
@@ -106,15 +103,22 @@ public class Game {
     }
 
     static public Human calculateYummyBrains(final Human zombie, final Human ash, final List<Human> humans) {
-        int distanceToAsh = distance(ash, zombie);
+        final int distanceToAsh = distanceSq(ash, zombie);
+
+        Human target = ash;
+        int closest = Integer.MAX_VALUE;
 
         // Zombies will attack the human with the smallest id if they are equidistant and they prefer Ash to scared humans.
         // Source: https://forum.codingame.com/t/code-vs-zombies-questions/1083/2
-        return humans
-            .stream()
-            .filter(v -> v.isAlive && distance(v, zombie) < distanceToAsh)
-            .sorted(Comparator.comparingInt((Human v) -> distance(v, zombie)).thenComparingInt(v -> v.id))
-            .findFirst()
-            .orElse(ash);
+        for (Human human : humans) {
+            final int distanceToZombie = distanceSq(human, zombie);
+
+            if (distanceToZombie < distanceToAsh && distanceToZombie < closest) {
+                target = human;
+                closest = distanceToZombie;
+            }
+        }
+
+        return target;
     }
 }

@@ -11,6 +11,16 @@ public class Utils {
     }
 
     /**
+     * Returns the squared distance between points (x1, y1) and (x2, y2).
+     */
+    static public int distanceSq(int x1, int y1, int x2, int y2) {
+        final int xd = x1 - x2;
+        final int yd = y1 - y2;
+
+        return xd * xd + yd * yd;
+    }
+
+    /**
      * Finds an intersection of a circle of radius {@code d} with the center at ({@code x1}, {@code y1})
      * and a ray starting from ({@code x1}, {@code y1}) and going through ({@code x2}, {@code y2}).
      *

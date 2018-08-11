@@ -37,11 +37,11 @@ public class GameState implements Cloneable {
     }
 
     public boolean isWin() {
-        return zombies.stream().noneMatch(v -> v.isAlive);
+        return zombies.isEmpty();
     }
 
     public boolean isLose() {
-        return humans.stream().noneMatch(v -> v.isAlive);
+        return humans.isEmpty();
     }
 
     @Override
@@ -56,8 +56,16 @@ public class GameState implements Cloneable {
         }
 
         result.ash = this.ash.clone();
-        result.humans = this.humans.stream().map(Human::clone).collect(Collectors.toCollection(LinkedList::new));
-        result.zombies = this.zombies.stream().map(Human::clone).collect(Collectors.toCollection(LinkedList::new));
+        result.humans = new LinkedList<>();
+        result.zombies = new LinkedList<>();
+
+        for (Human human : humans) {
+            result.humans.add(human.clone());
+        }
+
+        for (Human zombie : zombies) {
+            result.zombies.add(zombie.clone());
+        }
 
         return result;
     }
